@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function () {
             nav_forms: "Formularios de Reportes",
             nav_database: "Base de Datos",
             nav_security_systems: "Sistemas de Seguridad",
-
+            nav_calendar: "Calendario",
             nav_settings: "Configuración"
         },
         en: {
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function () {
             nav_forms: "Report Forms",
             nav_database: "Database",
             nav_security_systems: "Security Systems",
-
+            nav_calendar: "Calendar",
             nav_settings: "Settings"
         }
     };
@@ -274,7 +274,7 @@ document.addEventListener('DOMContentLoaded', function () {
             'holcim_personnel_directory', 'holcim_security_officers',
             'holcim_badge_inventory', 'holcim_cctv_inventory',
             'holcim_cctv_reviews', 'holcim_virtual_rounds', 'holcim_contact_directory',
-            'holcim_notes', 'holcim_access_points'
+            'holcim_calendar_events', 'holcim_access_points'
         ];
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const folderName = `backup_${timestamp}`;
@@ -441,9 +441,97 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (mapping[this.value]) {
                 reasonSelect.value = mapping[this.value];
+                validateExtraAuth(); // Trigger validation when reason changes automatically
             }
         });
     }
+
+    // --- EXTRA AUTHORIZATION VALIDATION ---
+    window.validateExtraAuth = function () {
+        const reason = document.getElementById('reason')?.value;
+        const authAlertBox = document.getElementById('auth-alert-box');
+        if (!authAlertBox) return;
+
+        if (reason !== 'TRABAJAR') {
+            authAlertBox.style.display = 'none';
+            return;
+        }
+
+        const idNum = (document.getElementById('idNumber')?.value || '').trim().replace(/-/g, '');
+        const name = (document.getElementById('fullName')?.value || '').trim().toUpperCase();
+        const company = (document.getElementById('company')?.value || '').trim().toUpperCase();
+
+        if (!idNum && !name && !company) {
+            authAlertBox.style.display = 'none';
+            return;
+        }
+
+        const auths = window.getSiteData('holcim_extra_auths');
+        const today = new Date().toISOString().split('T')[0];
+
+        const match = auths.find(a => {
+            const isDateValid = (today >= a.dateStart && today <= a.dateEnd);
+            if (!isDateValid) return false;
+
+            const authIdClean = a.idNumber ? a.idNumber.replace(/-/g, '') : '';
+            const matchId = idNum && authIdClean === idNum;
+            const matchName = name && a.name.toUpperCase().includes(name);
+            const matchCompany = company && a.company.toUpperCase().includes(company);
+
+            return matchId || matchName || matchCompany;
+        });
+
+        if (match) {
+            authAlertBox.innerHTML = `
+                <div class="pulsing-alert alert-success-light" style="border-color:var(--primary-teal); color:var(--primary-teal); background:rgba(0, 156, 189, 0.05); animation: alert-pulse-glow-teal 1.5s infinite alternate;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <i class="fas fa-user-check" style="color:var(--primary-teal); font-size: 2rem;"></i>
+                        <div>
+                            <strong style="display: block; font-size: 0.9rem; letter-spacing:0.5px;">PERSONAL AUTORIZADO</strong>
+                            <span style="font-size: 0.75rem; font-weight: 400;">Autorizado por: ${match.approver} hasta ${match.dateEnd}</span>
+                        </div>
+                    </div>
+                </div>`;
+            authAlertBox.style.display = 'block';
+        } else {
+            authAlertBox.innerHTML = `
+                <div class="pulsing-alert alert-danger-light" style="border-color:var(--red-holcim); color:var(--red-holcim); background:rgba(237, 28, 22, 0.05); animation: alert-pulse-glow-red 1.5s infinite alternate;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <i class="fas fa-user-lock" style="color:var(--red-holcim); font-size: 2rem;"></i>
+                        <div>
+                            <strong style="display: block; font-size: 0.9rem; letter-spacing:0.5px;">NO SE CUENTA CON AUTORIZACIÓN EXTRAORDINARIA</strong>
+                            <span style="font-size: 0.75rem; font-weight: 400;">El ingreso para TRABAJAR requiere previa autorización.</span>
+                        </div>
+                    </div>
+                </div>`;
+            authAlertBox.style.display = 'block';
+        }
+    };
+
+    // Attach validation listeners
+    ['idNumber', 'fullName', 'company', 'reason'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            const eventType = el.tagName === 'SELECT' ? 'change' : 'blur';
+            el.addEventListener(eventType, validateExtraAuth);
+            // Also listen for input on text fields for better reactivity
+            if (eventType === 'blur') el.addEventListener('input', validateExtraAuth);
+        }
+    });
+
+    // Custom animations for teal/red pulsing
+    const pulseStyle = document.createElement('style');
+    pulseStyle.innerHTML = `
+        @keyframes alert-pulse-glow-teal {
+            from { border-color: var(--primary-teal); box-shadow: 0 0 5px rgba(0, 156, 189, 0.2); transform: scale(1); }
+            to { border-color: var(--primary-teal); box-shadow: 0 0 15px rgba(0, 156, 189, 0.4); transform: scale(1.01); }
+        }
+        @keyframes alert-pulse-glow-red {
+            from { border-color: var(--red-holcim); box-shadow: 0 0 5px rgba(237, 28, 22, 0.2); transform: scale(1); }
+            to { border-color: var(--red-holcim); box-shadow: 0 0 15px rgba(237, 28, 22, 0.4); transform: scale(1.01); }
+        }
+    `;
+    document.head.appendChild(pulseStyle);
 
     window.switchDbTab = function (tabId, btn) {
         // Toggle tabs
@@ -522,7 +610,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        if (viewId === 'dashboard') renderMonitor();
+        if (viewId === 'dashboard') {
+            renderMonitor();
+            populateMonitorCompanyFilter();
+        }
         if (viewId === 'reports') renderReports();
         if (viewId === 'cctv-monitoring') renderCctvMonitoring();
         if (viewId === 'inductions') renderInductions();
@@ -533,7 +624,9 @@ document.addEventListener('DOMContentLoaded', function () {
             renderUserList();
             showSettingsSection('profile');
         }
-        if (viewId === 'notes') { window.renderNotesList && window.renderNotesList(); }
+        if (viewId === 'calendar') {
+            renderEventList();
+        }
     };
 
     // --- NAVIGATION EVENT BINDING ---
@@ -817,41 +910,35 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // --- EXTRA AUTHORIZATIONS ---
-    window.saveAuthorization = function () {
-        const name = (document.getElementById('auth-name')?.value || '').trim();
-        const company = (document.getElementById('auth-company')?.value || '').trim();
-        const approver = (document.getElementById('auth-approver')?.value || '').trim();
-        const dateStart = document.getElementById('auth-date-start')?.value || '';
-        const dateEnd = document.getElementById('auth-date-end')?.value || '';
-
-        if (!name) return showNotification('El nombre del beneficiario es obligatorio', 'warning');
-        if (!company) return showNotification('La empresa es obligatoria', 'warning');
-        if (!approver) return showNotification('La persona que autoriza es obligatoria', 'warning');
-        if (!dateStart || !dateEnd) return showNotification('Las fechas de emisión y expiración son obligatorias', 'warning');
-
-        const ak = window.getSiteKey('holcim_extra_auths');
-        const auths = JSON.parse(localStorage.getItem(ak) || '[]');
-        const newAuth = {
-            id: Date.now(),
-            name: name.toUpperCase(),
-            company: company.toUpperCase(),
-            approver: approver.toUpperCase(),
-            dateStart,
-            dateEnd
-        };
-        auths.unshift(newAuth);
-        localStorage.setItem(ak, JSON.stringify(auths));
-        showNotification('AUTORIZACIÓN GUARDADA', 'success');
-        addLogEvent('AUTORIZACIÓN', 'Nueva: ' + newAuth.name);
-        document.getElementById('auth-form')?.reset();
-        renderAuthList();
-    };
+    const authForm = document.getElementById('auth-form');
+    if (authForm) {
+        authForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const ak = window.getSiteKey('holcim_extra_auths');
+            const auths = JSON.parse(localStorage.getItem(ak) || '[]');
+            const newAuth = {
+                id: Date.now(),
+                idNumber: document.getElementById('auth-id-num').value.trim(),
+                name: document.getElementById('auth-name').value.toUpperCase(),
+                company: document.getElementById('auth-company').value.toUpperCase(),
+                approver: document.getElementById('auth-approver').value.toUpperCase(),
+                dateStart: document.getElementById('auth-date-start').value,
+                dateEnd: document.getElementById('auth-date-end').value
+            };
+            auths.unshift(newAuth);
+            localStorage.setItem(ak, JSON.stringify(auths));
+            showNotification('AUTORIZACIÓN GUARDADA', 'success');
+            addLogEvent('AUTORIZACIÓN', 'Nueva: ' + newAuth.name);
+            authForm.reset(); renderAuthList();
+        });
+    }
 
     window.openAuthEdit = function (id) {
         const auths = JSON.parse(localStorage.getItem(window.getSiteKey('holcim_extra_auths')) || '[]');
         const auth = auths.find(a => a.id === id);
         if (auth) {
             document.getElementById('edit-auth-id').value = auth.id;
+            document.getElementById('edit-auth-id-num').value = auth.idNumber || '';
             document.getElementById('edit-auth-name').value = auth.name;
             document.getElementById('edit-auth-company').value = auth.company;
             document.getElementById('edit-auth-approver').value = auth.approver;
@@ -868,6 +955,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const auth = auths.find(a => a.id == id); // Use == for comparison as id might be string or number
         if (auth) {
             const fields = {
+                idNumber: document.getElementById('edit-auth-id-num').value.trim(),
                 name: document.getElementById('edit-auth-name').value.toUpperCase(),
                 company: document.getElementById('edit-auth-company').value.toUpperCase(),
                 approver: document.getElementById('edit-auth-approver').value.toUpperCase(),
@@ -890,10 +978,20 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
+    window.deleteAuthRecord = function (id) {
+        if (!confirm('¿Está seguro de eliminar esta autorización?')) return;
+        const ak = window.getSiteKey('holcim_extra_auths');
+        let auths = JSON.parse(localStorage.getItem(ak) || '[]');
+        auths = auths.filter(a => a.id != id);
+        localStorage.setItem(ak, JSON.stringify(auths));
+        showNotification('AUTORIZACIÓN ELIMINADA', 'info');
+        renderAuthList();
+    };
+
     function renderAuthList() {
         const body = document.getElementById('auth-list-body');
         if (!body) return;
-        const auths = JSON.parse(localStorage.getItem(window.getSiteKey('holcim_extra_auths')) || '[]');
+        const auths = JSON.parse(localStorage.getItem('holcim_extra_auths') || '[]');
         const searchName = (document.getElementById('auth-search-name')?.value || '').toLowerCase();
         const searchCompany = (document.getElementById('auth-search-company')?.value || '').toLowerCase();
         const filterStatus = document.getElementById('auth-filter-status')?.value || 'ALL';
@@ -930,13 +1028,15 @@ document.addEventListener('DOMContentLoaded', function () {
             else if (diffDays <= 7) { statusClass = 'status-expired'; statusText = 'POR VENCER'; }
 
             return `
-                <div class="list-row" style="grid-template-columns: 1fr 150px 140px 110px 110px 100px;">
+                <div class="list-row" style="grid-template-columns: 100px 1fr 130px 120px 100px 100px 100px;">
+                    <span style="font-size:0.75rem; color:var(--text-muted)">${a.idNumber || 'N/A'}</span>
                     <strong style="font-size:0.85rem; cursor:pointer; color:var(--primary-teal)" onclick="openAuthEdit(${a.id})">${a.name}</strong>
                     <span style="font-size:0.75rem">${a.company}</span>
                     <span style="font-size:0.75rem">${a.approver}</span>
                     <span style="font-size:0.75rem">${a.dateStart}</span>
                     <span style="font-size:0.75rem">${a.dateEnd}</span>
                     <div><span class="induction-status ${statusClass}" onclick="openTraceability(${a.id}, '${a.name}')" style="cursor:pointer">${statusText}</span></div>
+                    <div><button class="btn-salida-corpo" onclick="deleteAuthRecord(${a.id})" style="background:var(--red-holcim); color:white; border-color:var(--red-holcim); padding:2px 8px; font-size:0.7rem;">ELIMINAR</button></div>
                 </div>
             `;
         }).join('');
@@ -1245,7 +1345,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const search = (document.getElementById('monitor-search')?.value || '').toLowerCase();
         const cat = document.getElementById('filter-monitor-category')?.value || 'ALL';
         const company = document.getElementById('filter-monitor-company')?.value || 'ALL';
-        populateMonitorCompanyFilter();
         const filtered = active.filter(l => {
             const name = (l.fullName || '').toLowerCase();
             const id = (l.idNumber || '');
@@ -1297,13 +1396,16 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (key.securityAlert) {
                         html += `
                             <div class="pulsing-alert">
-                                <i class="fas fa-exclamation-triangle fa-2x"></i>
-                                <div style="font-size:1.1rem">ALERTA DE SEGURIDAD REQUERIDA</div>
-                                <div style="font-size:0.9rem; font-weight:500; color:var(--navy-black)">${key.securityAlert}</div>
+                                <i class="fas fa-triangle-exclamation"></i>
+                                <span class="alert-title">ALERTA DE SEGURIDAD REQUERIDA</span>
+                                <div class="alert-message">${key.securityAlert}</div>
                             </div>`;
                     }
-                    if (key.status !== 'OPERATIVA') {
-                        html += `<span class="induction-status status-missing" style="width:100%; text-align:center; font-weight:bold; margin-top:5px;">AVISO: LLAVE EN ESTADO ${key.status}</span>`;
+                    if (key.status !== 'OPERATIVA' && key.status !== 'FUERA DE SERVICIO') {
+                        html += `<div class="pulsing-alert" style="background:#fff1f2; border-color:#fda4af; color:#9f1239; animation-delay:0.5s;">
+                                    <i class="fas fa-circle-exclamation" style="color:#e11d48; font-size:1.5rem;"></i>
+                                    <span style="font-size:0.9rem; font-weight:900;">AVISO: LLAVE EN ESTADO ${key.status}</span>
+                                 </div>`;
                     }
                 }
                 alertBox.innerHTML = html;
@@ -2439,6 +2541,19 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- QR/BARCODE SCANNER ---
     window.html5QrCode = null;
 
+    window.closeScanner = function () {
+        if (window.html5QrCode) {
+            window.html5QrCode.stop().then(() => {
+                document.getElementById('modal-scanner').style.display = 'none';
+            }).catch(err => {
+                console.warn("Scanner stop error:", err);
+                document.getElementById('modal-scanner').style.display = 'none';
+            });
+        } else {
+            document.getElementById('modal-scanner').style.display = 'none';
+        }
+    };
+
     window.openScanner = function () {
         const modal = document.getElementById('modal-scanner');
         if (modal) modal.style.display = 'flex';
@@ -2453,19 +2568,15 @@ document.addEventListener('DOMContentLoaded', function () {
             { facingMode: "environment" },
             config,
             (decodedText) => {
-                // Success: Assuming decodedText is the ID number
                 const idInput = document.getElementById('idNumber');
                 if (idInput) {
                     idInput.value = decodedText;
-                    // Trigger lookup
                     idInput.dispatchEvent(new Event('blur'));
                 }
                 window.closeScanner();
                 showNotification('CÓDIGO ESCANEADO', 'success');
             },
-            (errorMessage) => {
-                // parse error, ignore
-            }
+            (errorMessage) => { }
         ).catch((err) => {
             console.error("Error starting scanner:", err);
             showNotification('ERROR AL INICIAR CÁMARA', 'danger');
@@ -3661,134 +3772,131 @@ document.addEventListener('DOMContentLoaded', function () {
         window.updateMapMarkers && window.updateMapMarkers();
     };
 
-    // Notes functions are defined as globals below (outside DOMContentLoaded)
+    // ===================== CALENDAR FUNCTIONS =====================
+
+    // ===================== EVENT REGISTRY FUNCTIONS =====================
+    window.renderEventList = function () {
+        const body = document.getElementById('event-list-body');
+        if (!body) return;
+
+        const events = JSON.parse(localStorage.getItem(window.getSiteKey('holcim_calendar_events')) || '[]');
+        const filterDate = document.getElementById('event-list-filter-date')?.value;
+
+        let filtered = events;
+        if (filterDate) {
+            filtered = events.filter(e => e.start.startsWith(filterDate));
+        }
+
+        // Sort by start date (ascending for future events)
+        filtered.sort((a, b) => new Date(a.start) - new Date(b.start));
+
+        if (filtered.length === 0) {
+            body.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--text-muted); grid-column:1/-1">No hay eventos registrados.</div>';
+            return;
+        }
+
+        body.innerHTML = filtered.map(e => `
+            <div class="list-row" style="grid-template-columns: 130px 130px 1fr 140px 140px 80px; font-size: 0.85rem;">
+                <div style="color:var(--primary-teal)"><strong>${new Date(e.start).toLocaleDateString()}</strong><br>${new Date(e.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                <div style="color:var(--text-muted)"><strong>${new Date(e.end).toLocaleDateString()}</strong><br>${new Date(e.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                <div><strong>${e.title}</strong><p style="font-size:0.7rem; color:var(--text-muted); margin:0;">${e.desc || '-'}</p></div>
+                <span>${e.applicant || '-'}</span>
+                <span class="badge-motivo" style="font-size:0.65rem">${e.dept || '-'}</span>
+                <div style="display:flex; gap:5px;">
+                    <button class="btn-crear" onclick="editEventRecord('${e.id}')" style="padding:2px 8px; font-size:0.7rem; width:auto; height:auto; margin:0;">EDITAR</button>
+                    <button class="btn-salida-corpo" onclick="deleteEventRecord('${e.id}')" style="padding:2px 8px; font-size:0.7rem; background:#ef4444; color:white; border:none; width:auto; height:auto; margin:0;">ELIMINAR</button>
+                </div>
+            </div>
+        `).join('');
+    };
+
+    const viewEventForm = document.getElementById('view-event-form');
+    if (viewEventForm) {
+        viewEventForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const title = document.getElementById('v-event-title').value.trim();
+            const applicant = document.getElementById('v-event-applicant').value.trim();
+            const dept = document.getElementById('v-event-dept').value;
+            const start = document.getElementById('v-event-start').value;
+            const end = document.getElementById('v-event-end').value;
+            const desc = document.getElementById('v-event-desc').value.trim();
+            const id = document.getElementById('v-event-id').value;
+
+            if (new Date(end) < new Date(start)) {
+                return showNotification('La fecha de fin no puede ser anterior al inicio', 'error');
+            }
+
+            const storageKey = window.getSiteKey('holcim_calendar_events');
+            let events = JSON.parse(localStorage.getItem(storageKey) || '[]');
+
+            if (id) {
+                // Update existing
+                const idx = events.findIndex(e => e.id === id);
+                if (idx !== -1) {
+                    events[idx] = { ...events[idx], title, applicant, dept, start, end, desc };
+                    showNotification('NOTA ACTUALIZADA', 'success');
+                }
+            } else {
+                // Create new
+                events.push({
+                    id: 'ev_' + Date.now(),
+                    title, applicant, dept, start, end, desc,
+                    createdAt: new Date().toISOString()
+                });
+                showNotification('NOTA REGISTRADA', 'success');
+            }
+
+            localStorage.setItem(storageKey, JSON.stringify(events));
+            addLogEvent('NOTAS', (id ? 'Editada' : 'Nueva') + ' nota: ' + title);
+            viewEventForm.reset();
+            document.getElementById('v-event-id').value = '';
+            renderEventList();
+        });
+    }
+
+    window.editEventRecord = function (id) {
+        const events = JSON.parse(localStorage.getItem(window.getSiteKey('holcim_calendar_events')) || '[]');
+        const ev = events.find(e => e.id === id);
+        if (!ev) return;
+
+        document.getElementById('v-event-id').value = ev.id;
+        document.getElementById('v-event-title').value = ev.title;
+        document.getElementById('v-event-applicant').value = ev.applicant || '';
+        document.getElementById('v-event-dept').value = ev.dept || '';
+        document.getElementById('v-event-start').value = ev.start;
+        document.getElementById('v-event-end').value = ev.end;
+        document.getElementById('v-event-desc').value = ev.desc || '';
+
+        // Focus the first input
+        document.getElementById('v-event-title').focus();
+        showNotification('MODO EDICIÓN ACTIVADO', 'info');
+    };
+
+    window.deleteEventRecord = function (id) {
+        if (!confirm('¿Seguro que desea eliminar esta registro?')) return;
+        const storageKey = window.getSiteKey('holcim_calendar_events');
+        let events = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        events = events.filter(e => e.id !== id);
+        localStorage.setItem(storageKey, JSON.stringify(events));
+        showNotification('REGISTRO ELIMINADO', 'info');
+        renderEventList();
+    };
+
+    window.checkCalendarAlerts = function () {
+        const events = JSON.parse(localStorage.getItem(window.getSiteKey('holcim_calendar_events')) || '[]');
+        if (!events.length) return;
+        const now = new Date();
+        events.forEach(ev => {
+            const start = new Date(ev.start);
+            const diffMs = start - now;
+            const diffMins = Math.floor(diffMs / 60000);
+            if (diffMins === 15) {
+                showNotification(`PRÓXIMA NOTA/EVENTO: ${ev.title} en 15 minutos`, 'info');
+            }
+        });
+    };
 
     // Finalize initialization
     checkAuth();
 });
-
-// ===================== NOTAS DE TURNO — TRUE GLOBALS =====================
-
-function renderNotesList() {
-    var body = document.getElementById('notes-list-body');
-    if (!body) return;
-    var storageKey = window.getSiteKey ? window.getSiteKey('holcim_notes') : 'holcim_notes';
-    var notes = [];
-    try { notes = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch (e) { notes = []; }
-    var search = (document.getElementById('notes-search') ? document.getElementById('notes-search').value : '').toLowerCase();
-    var filterDate = document.getElementById('notes-filter-date') ? document.getElementById('notes-filter-date').value : '';
-    var filtered = notes.filter(function (n) {
-        var matchText = !search || ((n.title || '') + ' ' + (n.author || '') + ' ' + (n.body || '')).toLowerCase().indexOf(search) !== -1;
-        var matchDate = !filterDate || (n.start && n.start.startsWith(filterDate));
-        return matchText && matchDate;
-    });
-    filtered.sort(function (a, b) { return new Date(b.start || 0) - new Date(a.start || 0); });
-    if (filtered.length === 0) {
-        body.innerHTML = '<div style="padding:3rem; text-align:center; color:var(--text-muted);">Ninguna nota encontrada.</div>';
-        return;
-    }
-    body.innerHTML = filtered.map(function (n) {
-        var startStr = n.start ? new Date(n.start).toLocaleString('es-CR', { dateStyle: 'short', timeStyle: 'short' }) : '-';
-        var endStr = n.end ? new Date(n.end).toLocaleString('es-CR', { dateStyle: 'short', timeStyle: 'short' }) : '-';
-        var preview = n.body ? n.body.substring(0, 120) + (n.body.length > 120 ? '…' : '') : '';
-        return '<div class="list-row" style="grid-template-columns: 130px 1fr 130px 90px; font-size:0.82rem; align-items:start;">' +
-            '<div style="color:var(--primary-teal); font-size:0.75rem;">' + startStr + '</div>' +
-            '<div><strong style="display:block;">' + (n.title || '(Sin título)') + '</strong>' +
-            '<span style="color:var(--text-muted); font-size:0.72rem;">' + (n.author || '') + '</span>' +
-            (preview ? '<p style="font-size:0.72rem; color:var(--text-muted); margin:4px 0 0 0;">' + preview + '</p>' : '') + '</div>' +
-            '<div style="font-size:0.75rem; color:var(--text-muted);">' + endStr + '</div>' +
-            '<div style="display:flex; gap:4px; flex-wrap:wrap;">' +
-            '<button class="btn-crear" onclick="editNote(\'' + n.id + '\')" style="padding:2px 8px; font-size:0.7rem; width:auto; height:auto; margin:0;">EDITAR</button>' +
-            '<button class="btn-salida-corpo" onclick="deleteNote(\'' + n.id + '\')" style="padding:2px 8px; font-size:0.7rem; background:#ef4444; color:white; border:none; width:auto; height:auto; margin:0;">BORRAR</button>' +
-            '</div></div>';
-    }).join('');
-}
-window.renderNotesList = renderNotesList;
-
-function saveNote() {
-    var title = document.getElementById('note-title') ? document.getElementById('note-title').value.trim() : '';
-    var author = document.getElementById('note-author') ? document.getElementById('note-author').value.trim() : '';
-    var start = document.getElementById('note-start') ? document.getElementById('note-start').value : '';
-    var end = document.getElementById('note-end') ? document.getElementById('note-end').value : '';
-    var body = document.getElementById('note-body') ? document.getElementById('note-body').value.trim() : '';
-    var id = document.getElementById('note-id') ? document.getElementById('note-id').value : '';
-    var notify = window.showNotification || function (msg) { alert(msg); };
-    if (!title && !body) { notify('Ingrese al menos un título o descripción', 'warning'); return; }
-    if (start && end && new Date(end) < new Date(start)) { notify('La hora de fin no puede ser anterior al inicio', 'danger'); return; }
-    var storageKey = window.getSiteKey ? window.getSiteKey('holcim_notes') : 'holcim_notes';
-    var notes = [];
-    try { notes = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch (e) { notes = []; }
-    if (id) {
-        var idx = -1;
-        for (var i = 0; i < notes.length; i++) { if (notes[i].id === id) { idx = i; break; } }
-        if (idx !== -1) {
-            notes[idx].title = title; notes[idx].author = author; notes[idx].start = start;
-            notes[idx].end = end; notes[idx].body = body; notes[idx].updatedAt = new Date().toISOString();
-            notify('NOTA ACTUALIZADA', 'success');
-        }
-    } else {
-        notes.unshift({ id: 'nt_' + Date.now(), title: title, author: author, start: start, end: end, body: body, createdAt: new Date().toISOString() });
-        notify('NOTA GUARDADA', 'success');
-    }
-    localStorage.setItem(storageKey, JSON.stringify(notes));
-    if (window.addLogEvent) window.addLogEvent('NOTAS', (id ? 'Editada' : 'Nueva') + ' nota: ' + (title || '(sin título)'));
-    var form = document.getElementById('notes-form'); if (form) form.reset();
-    var idEl = document.getElementById('note-id'); if (idEl) idEl.value = '';
-    var ft = document.getElementById('notes-form-title');
-    if (ft) ft.innerHTML = '<i class="fas fa-plus-circle"></i> Nueva Nota';
-    renderNotesList();
-}
-window.saveNote = saveNote;
-
-function editNote(id) {
-    var storageKey = window.getSiteKey ? window.getSiteKey('holcim_notes') : 'holcim_notes';
-    var notes = []; try { notes = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch (e) { }
-    var n = null; for (var i = 0; i < notes.length; i++) { if (notes[i].id === id) { n = notes[i]; break; } }
-    if (!n) return;
-    document.getElementById('note-id').value = n.id;
-    document.getElementById('note-title').value = n.title || '';
-    document.getElementById('note-author').value = n.author || '';
-    document.getElementById('note-start').value = n.start || '';
-    document.getElementById('note-end').value = n.end || '';
-    document.getElementById('note-body').value = n.body || '';
-    var ft = document.getElementById('notes-form-title');
-    if (ft) ft.innerHTML = '<i class="fas fa-edit"></i> Editando Nota';
-    if (window.showNotification) window.showNotification('MODO EDICIÓN ACTIVADO', 'info');
-    document.getElementById('note-title').focus();
-}
-window.editNote = editNote;
-
-function deleteNote(id) {
-    if (!confirm('¿Eliminar esta nota permanentemente?')) return;
-    var storageKey = window.getSiteKey ? window.getSiteKey('holcim_notes') : 'holcim_notes';
-    var notes = []; try { notes = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch (e) { }
-    notes = notes.filter(function (n) { return n.id !== id; });
-    localStorage.setItem(storageKey, JSON.stringify(notes));
-    if (window.showNotification) window.showNotification('NOTA ELIMINADA', 'info');
-    renderNotesList();
-}
-window.deleteNote = deleteNote;
-
-function cancelNoteEdit() {
-    var form = document.getElementById('notes-form'); if (form) form.reset();
-    var idEl = document.getElementById('note-id'); if (idEl) idEl.value = '';
-    var ft = document.getElementById('notes-form-title');
-    if (ft) ft.innerHTML = '<i class="fas fa-plus-circle"></i> Nueva Nota';
-}
-window.cancelNoteEdit = cancelNoteEdit;
-
-function exportNotes() {
-    var storageKey = window.getSiteKey ? window.getSiteKey('holcim_notes') : 'holcim_notes';
-    var notes = []; try { notes = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch (e) { }
-    if (!notes.length) { if (window.showNotification) window.showNotification('NO HAY NOTAS PARA EXPORTAR', 'danger'); return; }
-    var csv = '\uFEFFTÍTULO,AUTOR,INICIO,FIN,DESCRIPCIÓN\n';
-    notes.forEach(function (n) {
-        csv += '"' + (n.title || '').replace(/"/g, '""') + '","' + (n.author || '').replace(/"/g, '""') + '","' +
-            (n.start || '') + '","' + (n.end || '') + '","' + (n.body || '').replace(/"/g, '""').replace(/\n/g, ' ') + '"\n';
-    });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-    a.download = 'Notas_Turno_' + new Date().toISOString().split('T')[0] + '.csv';
-    a.click();
-}
-window.exportNotes = exportNotes;

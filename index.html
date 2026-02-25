@@ -84,8 +84,8 @@
                         data-i18n="nav_database">Base de Datos</span></a></li>
             <li><a href="#" class="nav-link" data-view="security-systems"><i class="fas fa-shield-halved"></i>
                     <span data-i18n="nav_security_systems">GESTIÓN DE SISTEMAS DE SEGURIDAD</span></a></li>
-            <li><a href="#" class="nav-link" data-view="notes"><i class="fas fa-sticky-note"></i>
-                    <span>NOTAS</span></a></li>
+            <li><a href="#" class="nav-link" data-view="calendar"><i class="fas fa-clipboard-list"></i>
+                    <span data-i18n="nav_calendar">NOTAS DE TURNO (AGENDA)</span></a></li>
             <li><a href="#" class="nav-link" data-view="settings"><i class="fas fa-cog"></i> <span
                         data-i18n="nav_settings">Configuración</span></a></li>
             <li class="theme-switch-container"
@@ -158,6 +158,7 @@
                                     </button>
                                 </div>
                                 <div id="induction-alert-box"></div>
+                                <div id="auth-alert-box"></div>
                             </div>
 
                             <div class="form-group">
@@ -195,9 +196,11 @@
                                 <label class="form-label">Ubicación / Departamento</label>
                                 <select id="department" required>
                                     <option value="" disabled selected>Seleccione Departamento</option>
+                                    <option value="SEGURIDAD">SEGURIDAD</option>
                                     <option value="MANTENIMIENTO">MANTENIMIENTO</option>
                                     <option value="PRODUCCION">PRODUCCION</option>
                                     <option value="CALIDAD">CALIDAD</option>
+                                    <option value="RECURSOS HUMANOS (RRHH)">RECURSOS HUMANOS (RRHH)</option>
                                     <option value="ADMINISTRACION">ADMINISTRACION</option>
                                     <option value="H&S">H&S / SALUD Y SEGURIDAD</option>
                                     <option value="PROYECTOS">PROYECTOS</option>
@@ -480,31 +483,36 @@
                         </h3>
                     </div>
                     <div class="panel-body">
-                        <form id="auth-form" onsubmit="return false;">
+                        <form id="auth-form">
+                            <div class="form-group">
+                                <label class="form-label">ID / Cédula</label>
+                                <input type="text" id="auth-id-num" placeholder="Número de identificación">
+                            </div>
                             <div class="form-group">
                                 <label class="form-label">Nombre del Beneficiario</label>
-                                <input type="text" id="auth-name" placeholder="Nombre completo">
+                                <input type="text" id="auth-name" placeholder="Nombre completo" required>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Empresa</label>
-                                <input type="text" id="auth-company" placeholder="Empresa externa / Contratista">
+                                <input type="text" id="auth-company" placeholder="Empresa externa / Contratista"
+                                    required>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Persona que Autoriza</label>
-                                <input type="text" id="auth-approver" placeholder="Nombre del responsable Holcim">
+                                <input type="text" id="auth-approver" placeholder="Nombre del responsable Holcim"
+                                    required>
                             </div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                                 <div class="form-group">
                                     <label class="form-label">Fecha EmisiÓn</label>
-                                    <input type="date" id="auth-date-start">
+                                    <input type="date" id="auth-date-start" required>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">Fecha ExpiraciÓn</label>
-                                    <input type="date" id="auth-date-end">
+                                    <input type="date" id="auth-date-end" required>
                                 </div>
                             </div>
-                            <button type="button" class="btn-submit-action" onclick="saveAuthorization()">GUARDAR
-                                AUTORIZACIóN</button>
+                            <button type="submit" class="btn-submit-action">GUARDAR AUTORIZACIóN</button>
                         </form>
                     </div>
                 </aside>
@@ -545,7 +553,9 @@
                             </div>
                         </div>
                         <div class="monitor-list">
-                            <div class="list-head" style="grid-template-columns: 1fr 150px 140px 110px 110px 100px;">
+                            <div class="list-head"
+                                style="grid-template-columns: 100px 1fr 130px 120px 100px 100px 100px;">
+                                <span>ID</span>
                                 <span>Persona</span>
                                 <span>Empresa</span>
                                 <span>Autoriza</span>
@@ -1746,94 +1756,110 @@
             </div>
         </div>
 
-
-        <!-- ===================== NOTAS ===================== -->
-        <div id="notes-view" class="view-section" style="display: none;">
-            <div style="padding: 1rem 1.5rem; margin-bottom: 0;">
-                <h2
-                    style="font-size: 1.4rem; font-weight: 900; text-transform: uppercase; margin-bottom: 0; color: var(--navy-black);">
-                    <i class="fas fa-sticky-note" style="color: var(--primary-teal);"></i> Notas de Turno
-                </h2>
-                <p style="font-size: 0.8rem; color: var(--text-muted); margin: 4px 0 0 0;">Registro de notas y
-                    observaciones del personal por fecha y hora</p>
+        <!-- ===================== CALENDAR ===================== -->
+        <!-- ===================== CALENDAR / EVENT REGISTRY ===================== -->
+        <div id="calendar-view" class="view-section calendar-view" style="display: none;">
+            <div class="calendar-header" style="padding: 1rem 1.5rem; margin-bottom: 1rem;">
+                <div>
+                    <h2 style="font-size: 1.5rem; font-weight: 900; text-transform: uppercase; margin-bottom: 0;">
+                        Notas de Turno / Agenda</h2>
+                </div>
             </div>
 
             <div
-                style="display: grid; grid-template-columns: 370px 1fr; gap: 20px; padding: 1rem 1.5rem 1.5rem 1.5rem; height: calc(100vh - 175px);">
+                style="display: grid; grid-template-columns: 350px 1fr; gap: 20px; padding: 0 1.5rem 1.5rem 1.5rem; height: calc(100vh - 180px);">
                 <!-- Form Side -->
                 <div class="card-panel" style="padding: 1.5rem; overflow-y: auto;">
-                    <h3 id="notes-form-title"
-                        style="font-size: 0.95rem; margin-bottom: 1.5rem; color: var(--navy-black); border-bottom: 2px solid var(--primary-teal); padding-bottom: 10px;">
-                        <i class="fas fa-plus-circle"></i> Nueva Nota
+                    <h3 id="calendar-form-title"
+                        style="font-size: 1rem; margin-bottom: 1.5rem; color: var(--navy-black); border-bottom: 2px solid var(--primary-teal); padding-bottom: 10px;">
+                        <i class="fas fa-edit"></i> Registrar Nota / Evento
                     </h3>
-                    <form id="notes-form" onsubmit="return false;">
-                        <input type="hidden" id="note-id">
+                    <form id="view-event-form">
+                        <input type="hidden" id="v-event-id">
                         <div class="form-group">
-                            <label class="form-label">Título / Asunto</label>
-                            <input type="text" id="note-title" placeholder="Ej: Incidente en portería norte"
-                                style="width:100%;">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Responsable / Autor</label>
-                            <input type="text" id="note-author" placeholder="Nombre del oficial o agente"
-                                style="width:100%;">
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                            <div class="form-group">
-                                <label class="form-label">Inicio</label>
-                                <input type="datetime-local" id="note-start" style="width:100%;">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Fin</label>
-                                <input type="datetime-local" id="note-end" style="width:100%;">
-                            </div>
+                            <label class="form-label">Título de la Nota / Evento</label>
+                            <input type="text" id="v-event-title" placeholder="Ej: Visita de Gerencia" required>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Descripción / Detalle</label>
-                            <textarea id="note-body" rows="5" style="width:100%; resize:vertical;"
-                                placeholder="Detalle completo de la nota u observación..."></textarea>
+                            <label class="form-label">Nombre del Solicitante</label>
+                            <input type="text" id="v-event-applicant" placeholder="Nombre completo" required>
                         </div>
-                        <div style="display:flex; gap:10px; margin-top:1rem;">
-                            <button type="button" class="btn-submit-action" style="flex:1;" onclick="saveNote()">
-                                <i class="fas fa-save"></i> GUARDAR NOTA
-                            </button>
-                            <button type="button" class="btn-salida-corpo"
-                                style="width:auto; padding:0 16px; height:44px;" onclick="cancelNoteEdit()">
-                                <i class="fas fa-times"></i>
-                            </button>
+                        <div class="form-group">
+                            <label class="form-label">Departamento</label>
+                            <select id="v-event-dept" required>
+                                <option value="">Seleccione...</option>
+                                <option value="SEGURIDAD">SEGURIDAD</option>
+                                <option value="MANTENIMIENTO">MANTENIMIENTO</option>
+                                <option value="PRODUCCION">PRODUCCION</option>
+                                <option value="CALIDAD">CALIDAD</option>
+                                <option value="RECURSOS HUMANOS (RRHH)">RECURSOS HUMANOS (RRHH)</option>
+                                <option value="ADMINISTRACION">ADMINISTRACION</option>
+                                <option value="H&S">H&S / SALUD Y SEGURIDAD</option>
+                                <option value="PROYECTOS">PROYECTOS</option>
+                                <option value="GEOCYCLE">GEOCYCLE</option>
+                                <option value="LOGISTICA">LOGISTICA</option>
+                                <option value="ALMACEN">ALMACEN</option>
+                                <option value="AMBIENTE">AMBIENTE</option>
+                                <option value="COMUNICACION">COMUNICACION</option>
+                                <option value="CEPAL">CEPAL</option>
+                                <option value="PROVEEDURIA">PROVEEDURIA</option>
+                                <option value="TI">TI / TECNOLOGIA</option>
+                                <option value="CETEC">CETEC</option>
+                                <option value="MINERIA">MINERIA</option>
+                                <option value="SERVICIOS GENERALES">SERVICIOS GENERALES</option>
+                                <option value="OTRO">OTRO</option>
+                            </select>
                         </div>
+                        <div class="form-group">
+                            <label class="form-label">Inicio (Fecha y Hora)</label>
+                            <input type="datetime-local" id="v-event-start" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Fin (Fecha y Hora)</label>
+                            <input type="datetime-local" id="v-event-end" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Descripción / Notas</label>
+                            <textarea id="v-event-desc" style="width: 100%; height: 80px; resize: none;"
+                                placeholder="Detalles adicionales..."></textarea>
+                        </div>
+                        <button type="submit" class="btn-submit-action" style="margin-top: 1rem; width: 100%;">
+                            <i class="fas fa-save"></i> REGISTRAR EN AGENDA
+                        </button>
                     </form>
                 </div>
 
                 <!-- List Side -->
                 <div class="card-panel"
                     style="padding: 1.5rem; display: flex; flex-direction: column; overflow: hidden;">
-                    <!-- Filters -->
-                    <div style="display:flex; gap:10px; margin-bottom:1.2rem; flex-wrap:wrap; align-items:center;">
-                        <input type="text" id="notes-search" placeholder="Buscar en notas..."
-                            style="flex:1; min-width:160px; height:36px; font-size:0.8rem;" oninput="renderNotesList()">
-                        <input type="date" id="notes-filter-date" style="height:36px; font-size:0.8rem;"
-                            onchange="renderNotesList()">
-                        <button class="btn-export" onclick="exportNotes('xlsx')" style="height:36px; padding:0 12px;"><i
-                                class="fas fa-file-excel"></i> Excel</button>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+                        <h3 style="font-size: 1rem; margin: 0; color: var(--navy-black);">
+                            <i class="fas fa-list-ul"></i> Notas Recientes / Agenda
+                        </h3>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="date" id="event-list-filter-date" style="height: 35px; font-size: 0.8rem;">
+                            <button class="btn-salida-corpo" onclick="renderEventList()"
+                                style="width: auto; height: 35px; padding: 0 10px;">FILTRAR</button>
+                        </div>
                     </div>
 
-                    <!-- List Headers -->
-                    <div class="list-head" style="grid-template-columns: 130px 1fr 130px 90px; font-size:0.75rem;">
-                        <span>Inicio</span>
-                        <span>Nota / Autor</span>
-                        <span>Fin</span>
-                        <span>Acciones</span>
-                    </div>
-
-                    <!-- List Body -->
-                    <div id="notes-list-body" style="flex:1; overflow-y:auto;">
-                        <!-- injected by JS -->
+                    <div class="monitor-list" style="flex: 1; overflow-y: auto;">
+                        <div class="list-head" style="grid-template-columns: 130px 130px 1fr 140px 140px 80px;">
+                            <span>Inicio</span>
+                            <span>Fin</span>
+                            <span>Nota / Evento</span>
+                            <span>Solicitante</span>
+                            <span>Dpto</span>
+                            <span>Acción</span>
+                        </div>
+                        <div id="event-list-body">
+                            <!-- Events injected by JS -->
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-
 
     </main>
 
@@ -1959,6 +1985,10 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="edit-auth-id">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label class="form-label">ID / Cédula</label>
+                    <input type="text" id="edit-auth-id-num">
+                </div>
                 <div class="form-group" style="margin-bottom: 1rem;">
                     <label class="form-label">Beneficiario</label>
                     <input type="text" id="edit-auth-name">
@@ -2769,6 +2799,30 @@
             </div>
         </div>
     </div>
+    <!-- MODAL: ESCÁNER DE CÓDIGO -->
+    <div id="modal-scanner" class="modal-overlay" style="display:none;">
+        <div class="modal-content" style="max-width:500px; padding:0; overflow:hidden;">
+            <div class="panel-header"
+                style="background:var(--navy-black); color:white; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0;"><i class="fas fa-qrcode"></i> ESCANEAR CÓDIGO</h3>
+                <button onclick="window.closeScanner()"
+                    style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <div class="panel-body" style="padding:1rem;">
+                <div id="reader"
+                    style="width:100%; border-radius:8px; overflow:hidden; border:2px solid var(--border-gray);"></div>
+                <div style="margin-top:1rem; text-align:center;">
+                    <button class="btn-salida-corpo" onclick="window.closeScanner()"
+                        style="width:100%; background:var(--red-holcim); color:white; border-color:var(--red-holcim);">
+                        <i class="fas fa-times-circle"></i> CANCELAR ESCANEO
+                    </button>
+                    <p style="font-size:0.7rem; color:var(--text-muted); margin-top:0.5rem;">Asegúrese de dar permisos
+                        de cámara.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="main.js"></script>
