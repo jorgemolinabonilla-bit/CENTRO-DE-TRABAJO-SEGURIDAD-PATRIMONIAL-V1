@@ -558,7 +558,7 @@
                         </div>
                         <div class="monitor-list">
                             <div class="list-head"
-                                style="grid-template-columns: 100px 1fr 130px 120px 100px 100px 100px;">
+                                style="grid-template-columns: 100px 1fr 130px 120px 100px 100px 100px 130px;">
                                 <span>ID</span>
                                 <span>Persona</span>
                                 <span>Empresa</span>
@@ -566,6 +566,7 @@
                                 <span>EmisiÓn</span>
                                 <span>Expira</span>
                                 <span>Estado</span>
+                                <span style="text-align:right">Acciones</span>
                             </div>
                             <div id="auth-list-body"><!-- Auth rows --></div>
                         </div>
@@ -2835,6 +2836,44 @@
         </div>
     </div>
 
+    <!-- EDIT: Autorización Extraordinaria -->
+    <div id="modal-edit-auth" class="modal-overlay" style="display:none;">
+        <div class="modal-content" style="max-width:500px;">
+            <div class="panel-header"
+                style="background:var(--primary-teal);display:flex;justify-content:space-between;align-items:center;">
+                <h3 style="color:white;margin:0;"><i class="fas fa-file-contract"></i> Editar Autorización</h3>
+                <button onclick="closeEditAuthModal()"
+                    style="background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;">&times;</button>
+            </div>
+            <div class="panel-body">
+                <input type="hidden" id="edit-auth-id">
+                <div class="form-group"><label class="form-label">ID / Cédula</label><input type="text"
+                        id="edit-auth-id-num"></div>
+                <div class="form-group"><label class="form-label">Nombre del Beneficiario</label><input type="text"
+                        id="edit-auth-name" required></div>
+                <div class="form-group"><label class="form-label">Empresa</label><input type="text"
+                        id="edit-auth-company" required></div>
+                <div class="form-group"><label class="form-label">Persona que Autoriza</label><input type="text"
+                        id="edit-auth-approver" required></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Fecha Emisión</label>
+                        <input type="date" id="edit-auth-date-start" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Fecha Expiración</label>
+                        <input type="date" id="edit-auth-date-end" required>
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:1rem;">
+                    <button class="btn-salida-corpo" style="flex:1;" onclick="closeEditAuthModal()">CANCELAR</button>
+                    <button class="btn-submit-action" style="flex:1;background:var(--primary-teal);"
+                        onclick="saveAuthEdit()"><i class="fas fa-save"></i> GUARDAR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- EDIT: CCTV -->
     <div id="modal-edit-db-cctv" class="modal-overlay" style="display:none;">
         <div class="modal-content" style="max-width:600px;">
@@ -3072,6 +3111,8 @@
     <script src="main.js"></script>
     <script src="packages.js"></script>
     <script src="statistics.js"></script>
+    <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+        preload="auto"></audio>
 </body>
 
 </html>

@@ -947,8 +947,8 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('edit-auth-name').value = auth.name;
             document.getElementById('edit-auth-company').value = auth.company;
             document.getElementById('edit-auth-approver').value = auth.approver;
-            document.getElementById('edit-auth-start').value = auth.dateStart;
-            document.getElementById('edit-auth-end').value = auth.dateEnd;
+            document.getElementById('edit-auth-date-start').value = auth.dateStart;
+            document.getElementById('edit-auth-date-end').value = auth.dateEnd;
             document.getElementById('modal-edit-auth').style.display = 'flex';
         }
     };
@@ -957,20 +957,20 @@ document.addEventListener('DOMContentLoaded', function () {
         const id = document.getElementById('edit-auth-id').value;
         const ak = window.getSiteKey('holcim_extra_auths');
         const auths = JSON.parse(localStorage.getItem(ak) || '[]');
-        const auth = auths.find(a => a.id == id); // Use == for comparison as id might be string or number
+        const auth = auths.find(a => a.id == id);
         if (auth) {
             const fields = {
                 idNumber: document.getElementById('edit-auth-id-num').value.trim(),
                 name: document.getElementById('edit-auth-name').value.toUpperCase(),
                 company: document.getElementById('edit-auth-company').value.toUpperCase(),
                 approver: document.getElementById('edit-auth-approver').value.toUpperCase(),
-                dateStart: document.getElementById('edit-auth-start').value,
-                dateEnd: document.getElementById('edit-auth-end').value
+                dateStart: document.getElementById('edit-auth-date-start').value,
+                dateEnd: document.getElementById('edit-auth-date-end').value
             };
             let changed = false;
             for (const key in fields) {
                 if (auth[key] !== fields[key]) {
-                    addAuditLog('AUTORIZACIÓN', auth.id, key, auth[key], fields[key]);
+                    if (window.addAuditLog) window.addAuditLog('AUTORIZACIÓN', auth.id, key, auth[key], fields[key]);
                     auth[key] = fields[key]; changed = true;
                 }
             }
@@ -982,6 +982,8 @@ document.addEventListener('DOMContentLoaded', function () {
             renderAuthList();
         }
     };
+
+    window.closeEditAuthModal = () => document.getElementById('modal-edit-auth').style.display = 'none';
 
     window.deleteAuthRecord = function (id) {
         if (!confirm('¿Está seguro de eliminar esta autorización?')) return;
@@ -996,7 +998,8 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderAuthList() {
         const body = document.getElementById('auth-list-body');
         if (!body) return;
-        const auths = JSON.parse(localStorage.getItem('holcim_extra_auths') || '[]');
+        const ak = window.getSiteKey('holcim_extra_auths');
+        const auths = JSON.parse(localStorage.getItem(ak) || '[]');
         const searchName = (document.getElementById('auth-search-name')?.value || '').toLowerCase();
         const searchCompany = (document.getElementById('auth-search-company')?.value || '').toLowerCase();
         const filterStatus = document.getElementById('auth-filter-status')?.value || 'ALL';
@@ -1033,7 +1036,7 @@ document.addEventListener('DOMContentLoaded', function () {
             else if (diffDays <= 7) { statusClass = 'status-expired'; statusText = 'POR VENCER'; }
 
             return `
-                <div class="list-row" style="grid-template-columns: 100px 1fr 130px 120px 100px 100px 100px;">
+                <div class="list-row" style="grid-template-columns: 100px 1fr 130px 120px 100px 100px 100px 130px;">
                     <span style="font-size:0.75rem; color:var(--text-muted)">${a.idNumber || 'N/A'}</span>
                     <strong style="font-size:0.85rem; cursor:pointer; color:var(--primary-teal)" onclick="openAuthEdit(${a.id})">${a.name}</strong>
                     <span style="font-size:0.75rem">${a.company}</span>
@@ -1041,7 +1044,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     <span style="font-size:0.75rem">${a.dateStart}</span>
                     <span style="font-size:0.75rem">${a.dateEnd}</span>
                     <div><span class="induction-status ${statusClass}" onclick="openTraceability(${a.id}, '${a.name}')" style="cursor:pointer">${statusText}</span></div>
-                    <div><button class="btn-salida-corpo" onclick="deleteAuthRecord(${a.id})" style="background:var(--red-holcim); color:white; border-color:var(--red-holcim); padding:2px 8px; font-size:0.7rem;">ELIMINAR</button></div>
+                    <div style="display:flex; gap:5px; justify-content: flex-end;">
+                        <button class="btn-crear" onclick="openAuthEdit(${a.id})" style="padding:2px 8px; font-size:0.7rem; width:auto; height:auto; margin:0; background:var(--primary-teal); border-color:var(--primary-teal);">EDITAR</button>
+                        <button class="btn-salida-corpo" onclick="deleteAuthRecord(${a.id})" style="background:var(--red-holcim); color:white; border-color:var(--red-holcim); padding:2px 8px; font-size:0.7rem; width:auto; height:auto; margin:0;">ELIMINAR</button>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -3805,19 +3811,44 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        body.innerHTML = filtered.map(e => `
-            <div class="list-row" style="grid-template-columns: 130px 130px 1fr 140px 140px 80px; font-size: 0.85rem;">
-                <div style="color:var(--primary-teal)"><strong>${new Date(e.start).toLocaleDateString()}</strong><br>${new Date(e.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                <div style="color:var(--text-muted)"><strong>${new Date(e.end).toLocaleDateString()}</strong><br>${new Date(e.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                <div><strong>${e.title}</strong><p style="font-size:0.7rem; color:var(--text-muted); margin:0;">${e.desc || '-'}</p></div>
-                <span>${e.applicant || '-'}</span>
-                <span class="badge-motivo" style="font-size:0.65rem">${e.dept || '-'}</span>
-                <div style="display:flex; gap:5px;">
-                    <button class="btn-crear" onclick="editEventRecord('${e.id}')" style="padding:2px 8px; font-size:0.7rem; width:auto; height:auto; margin:0;">EDITAR</button>
-                    <button class="btn-salida-corpo" onclick="deleteEventRecord('${e.id}')" style="padding:2px 8px; font-size:0.7rem; background:#ef4444; color:white; border:none; width:auto; height:auto; margin:0;">ELIMINAR</button>
+        const now = new Date();
+
+        body.innerHTML = filtered.map(e => {
+            const startDate = new Date(e.start);
+            const diffMs = startDate - now;
+            const diffMins = Math.floor(diffMs / 60000);
+
+            let rowClass = "";
+            let statusBadgeClass = "badge-motivo";
+            let statusText = e.dept || '-';
+
+            if (diffMins < 0 && new Date(e.end) > now) {
+                rowClass = "alert-blink"; // Event in progress
+                statusBadgeClass = "status-urgent";
+                statusText = "EN CURSO";
+            } else if (diffMins >= 0 && diffMins <= 30) {
+                rowClass = "alert-blink"; // Imminent
+                statusBadgeClass = "status-urgent";
+                statusText = "INMINENTE";
+            } else if (new Date(e.end) < now) {
+                statusBadgeClass = "status-missing";
+                statusText = "FINALIZADO";
+            }
+
+            return `
+                <div class="list-row ${rowClass}" style="grid-template-columns: 130px 130px 1fr 140px 140px 80px; font-size: 0.85rem;">
+                    <div style="color:var(--primary-teal)"><strong>${startDate.toLocaleDateString()}</strong><br>${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    <div style="color:var(--text-muted)"><strong>${new Date(e.end).toLocaleDateString()}</strong><br>${new Date(e.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    <div><strong>${e.title}</strong><p style="font-size:0.7rem; color:var(--text-muted); margin:0;">${e.desc || '-'}</p></div>
+                    <span>${e.applicant || '-'}</span>
+                    <span class="${statusBadgeClass}" style="font-size:0.65rem">${statusText}</span>
+                    <div style="display:flex; gap:5px;">
+                        <button class="btn-crear" onclick="editEventRecord('${e.id}')" style="padding:2px 8px; font-size:0.7rem; width:auto; height:auto; margin:0;">EDITAR</button>
+                        <button class="btn-salida-corpo" onclick="deleteEventRecord('${e.id}')" style="padding:2px 8px; font-size:0.7rem; background:#ef4444; color:white; border:none; width:auto; height:auto; margin:0;">ELIMINAR</button>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     };
 
     const viewEventForm = document.getElementById('view-event-form');
@@ -3893,18 +3924,40 @@ document.addEventListener('DOMContentLoaded', function () {
         renderEventList();
     };
 
+    const lastAlertedEvents = new Set();
     window.checkCalendarAlerts = function () {
         const events = JSON.parse(localStorage.getItem(window.getSiteKey('holcim_calendar_events')) || '[]');
         if (!events.length) return;
         const now = new Date();
+        let hasActiveAlerts = false;
+
         events.forEach(ev => {
             const start = new Date(ev.start);
             const diffMs = start - now;
             const diffMins = Math.floor(diffMs / 60000);
-            if (diffMins === 15) {
-                showNotification(`PRÓXIMA NOTA/EVENTO: ${ev.title} en 15 minutos`, 'info');
+
+            // Notify at 15 and 5 minutes
+            if (diffMins === 15 || diffMins === 5 || diffMins === 0) {
+                hasActiveAlerts = true;
+                const alertKey = `${ev.id}_${diffMins}`;
+                if (!lastAlertedEvents.has(alertKey)) {
+                    showNotification(`ATENCIÓN: ${ev.title} - Inicia en ${diffMins} min`, 'warning');
+                    const audio = document.getElementById('alert-sound');
+                    if (audio) audio.play().catch(e => console.log('Audio blocked', e));
+                    lastAlertedEvents.add(alertKey);
+                }
+            }
+
+            // Pulse nav if imminent or in progress
+            if (diffMins <= 30 && new Date(ev.end) > now) {
+                hasActiveAlerts = true;
             }
         });
+
+        const navLink = document.querySelector('[data-view="calendar"]');
+        if (navLink) {
+            navLink.classList.toggle('pulse-red-alert', hasActiveAlerts);
+        }
     };
 
     // Finalize initialization

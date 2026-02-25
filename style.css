@@ -1926,3 +1926,47 @@ select:focus {
     background: var(--primary-teal);
     color: white;
 }
+
+@keyframes alert-pulse-nav {
+    0% {
+        background-color: var(--navy-black);
+    }
+
+    50% {
+        background-color: var(--red-holcim);
+    }
+
+    100% {
+        background-color: var(--navy-black);
+    }
+}
+
+.pulse-red-alert {
+    animation: alert-pulse-nav 1s infinite ease-in-out;
+}
+
+@keyframes blink-alert {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.alert-blink {
+    animation: blink-alert 0.8s infinite;
+    color: var(--red-holcim) !important;
+    font-weight: 900 !important;
+}
+
+.status-urgent {
+    background: var(--red-holcim) !important;
+    color: white !important;
+    font-weight: 800;
+}
