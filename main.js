@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function () {
             nav_forms: "Formularios de Reportes",
             nav_database: "Base de Datos",
             nav_security_systems: "Sistemas de Seguridad",
-            nav_calendar: "Registro de Eventos y Reservas",
+
             nav_settings: "Configuración"
         },
         en: {
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function () {
             nav_forms: "Report Forms",
             nav_database: "Database",
             nav_security_systems: "Security Systems",
-            nav_calendar: "Event & Reservation Registry",
+
             nav_settings: "Settings"
         }
     };
@@ -3661,125 +3661,7 @@ document.addEventListener('DOMContentLoaded', function () {
         window.updateMapMarkers && window.updateMapMarkers();
     };
 
-    // ===================== CALENDAR FUNCTIONS =====================
-    // ===================== EVENT REGISTRY FUNCTIONS =====================
-    window.renderEventList = function () {
-        const body = document.getElementById('event-list-body');
-        if (!body) return;
-
-        const events = JSON.parse(localStorage.getItem(window.getSiteKey('holcim_calendar_events')) || '[]');
-        const filterDate = document.getElementById('event-list-filter-date')?.value;
-
-        let filtered = events;
-        if (filterDate) {
-            filtered = events.filter(e => e.start.startsWith(filterDate));
-        }
-
-        // Sort by start date (ascending for future events)
-        filtered.sort((a, b) => new Date(a.start) - new Date(b.start));
-
-        if (filtered.length === 0) {
-            body.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--text-muted); grid-column:1/-1">No hay eventos registrados.</div>';
-            return;
-        }
-
-        body.innerHTML = filtered.map(e => `
-            <div class="list-row" style="grid-template-columns: 140px 1fr 140px 140px 80px; font-size: 0.85rem;">
-                <div style="color:var(--primary-teal)"><strong>${new Date(e.start).toLocaleDateString()}</strong><br>${new Date(e.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                <div><strong>${e.title}</strong><p style="font-size:0.7rem; color:var(--text-muted); margin:0;">${e.desc || '-'}</p></div>
-                <span>${e.applicant || '-'}</span>
-                <span class="badge-motivo" style="font-size:0.65rem">${e.dept || '-'}</span>
-                <div style="display:flex; gap:5px;">
-                    <button class="btn-crear" onclick="editEventRecord('${e.id}')" style="padding:2px 8px; font-size:0.7rem; width:auto; height:auto; margin:0;">EDITAR</button>
-                    <button class="btn-salida-corpo" onclick="deleteEventRecord('${e.id}')" style="padding:2px 8px; font-size:0.7rem; background:#ef4444; color:white; border:none; width:auto; height:auto; margin:0;">ELIMINAR</button>
-                </div>
-            </div>
-        `).join('');
-    };
-
-    window.saveCalendarEvent = function () {
-        const title = (document.getElementById('v-event-title')?.value || '').trim();
-        const applicant = (document.getElementById('v-event-applicant')?.value || '').trim();
-        const dept = document.getElementById('v-event-dept')?.value || '';
-        const start = document.getElementById('v-event-start')?.value || '';
-        const end = document.getElementById('v-event-end')?.value || '';
-        const desc = (document.getElementById('v-event-desc')?.value || '').trim();
-        const id = document.getElementById('v-event-id')?.value || '';
-
-        if (!title) return showNotification('El título del evento es obligatorio', 'warning');
-        if (!start) return showNotification('Debe indicar la fecha y hora de inicio', 'warning');
-        if (!end) return showNotification('Debe indicar la fecha y hora de fin', 'warning');
-
-        if (new Date(end) < new Date(start)) {
-            return showNotification('La fecha de fin no puede ser anterior al inicio', 'danger');
-        }
-
-        const storageKey = window.getSiteKey('holcim_calendar_events');
-        let events = JSON.parse(localStorage.getItem(storageKey) || '[]');
-
-        if (id) {
-            const idx = events.findIndex(e => e.id === id);
-            if (idx !== -1) {
-                events[idx] = { ...events[idx], title, applicant, dept, start, end, desc };
-                showNotification('EVENTO ACTUALIZADO', 'success');
-            }
-        } else {
-            events.push({
-                id: 'ev_' + Date.now(),
-                title, applicant, dept, start, end, desc,
-                createdAt: new Date().toISOString()
-            });
-            showNotification('EVENTO REGISTRADO', 'success');
-        }
-
-        localStorage.setItem(storageKey, JSON.stringify(events));
-        addLogEvent('CALENDAR', (id ? 'Editado' : 'Nuevo') + ' evento: ' + title);
-        document.getElementById('view-event-form')?.reset();
-        document.getElementById('v-event-id').value = '';
-        window.renderEventList();
-    };
-
-    window.editEventRecord = function (id) {
-        const events = JSON.parse(localStorage.getItem(window.getSiteKey('holcim_calendar_events')) || '[]');
-        const ev = events.find(e => e.id === id);
-        if (!ev) return;
-
-        document.getElementById('v-event-id').value = ev.id;
-        document.getElementById('v-event-title').value = ev.title;
-        document.getElementById('v-event-applicant').value = ev.applicant || '';
-        document.getElementById('v-event-dept').value = ev.dept || '';
-        document.getElementById('v-event-start').value = ev.start;
-        document.getElementById('v-event-end').value = ev.end;
-        document.getElementById('v-event-desc').value = ev.desc || '';
-
-        // Focus the first input
-        document.getElementById('v-event-title').focus();
-        showNotification('MODO EDICIÓN ACTIVADO', 'info');
-    };
-
-    window.deleteEventRecord = function (id) {
-        if (!confirm('¿Seguro que desea eliminar esta registro?')) return;
-        const storageKey = window.getSiteKey('holcim_calendar_events');
-        let events = JSON.parse(localStorage.getItem(storageKey) || '[]');
-        events = events.filter(e => e.id !== id);
-        localStorage.setItem(storageKey, JSON.stringify(events));
-        showNotification('REGISTRO ELIMINADO', 'info');
-        renderEventList();
-    };
-
-    window.checkCalendarAlerts = function () {
-        const events = JSON.parse(localStorage.getItem(window.getSiteKey('holcim_calendar_events')) || '[]');
-        if (!events.length) return;
-        const now = new Date();
-        events.forEach(ev => {
-            const start = new Date(ev.start);
-            const diffMs = start - now;
-            const diffMins = Math.floor(diffMs / 60000);
-            if (diffMins === 15) {
-                showNotification(`PRÓXIMO EVENTO: ${ev.title} en 15 minutos`, 'info');
-            }
-        });
-    };
+    // Calendar functions are defined as globals below (outside DOMContentLoaded)
 
     // Finalize initialization
     checkAuth();

@@ -84,8 +84,7 @@
                         data-i18n="nav_database">Base de Datos</span></a></li>
             <li><a href="#" class="nav-link" data-view="security-systems"><i class="fas fa-shield-halved"></i>
                     <span data-i18n="nav_security_systems">GESTIÓN DE SISTEMAS DE SEGURIDAD</span></a></li>
-            <li><a href="#" class="nav-link" data-view="calendar"><i class="fas fa-calendar-alt"></i>
-                    <span data-i18n="nav_calendar">REGISTRO DE EVENTOS Y RESERVAS</span></a></li>
+
             <li><a href="#" class="nav-link" data-view="settings"><i class="fas fa-cog"></i> <span
                         data-i18n="nav_settings">Configuración</span></a></li>
             <li class="theme-switch-container"
@@ -1746,95 +1745,6 @@
             </div>
         </div>
 
-        <!-- ===================== CALENDAR ===================== -->
-        <!-- ===================== CALENDAR / EVENT REGISTRY ===================== -->
-        <div id="calendar-view" class="view-section calendar-view" style="display: none;">
-            <div class="calendar-header" style="padding: 1rem 1.5rem; margin-bottom: 1rem;">
-                <div>
-                    <h2 style="font-size: 1.5rem; font-weight: 900; text-transform: uppercase; margin-bottom: 0;">
-                        Registro de Eventos y Reservas</h2>
-                </div>
-            </div>
-
-            <div
-                style="display: grid; grid-template-columns: 350px 1fr; gap: 20px; padding: 0 1.5rem 1.5rem 1.5rem; height: calc(100vh - 180px);">
-                <!-- Form Side -->
-                <div class="card-panel" style="padding: 1.5rem; overflow-y: auto;">
-                    <h3 id="calendar-form-title"
-                        style="font-size: 1rem; margin-bottom: 1.5rem; color: var(--navy-black); border-bottom: 2px solid var(--primary-teal); padding-bottom: 10px;">
-                        <i class="fas fa-edit"></i> Gestionar Registro
-                    </h3>
-                    <form id="view-event-form" onsubmit="return false;">
-                        <input type="hidden" id="v-event-id">
-                        <div class="form-group">
-                            <label class="form-label">Título del Evento</label>
-                            <input type="text" id="v-event-title" placeholder="Ej: Visita de Gerencia">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Nombre del Solicitante</label>
-                            <input type="text" id="v-event-applicant" placeholder="Nombre completo">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Departamento</label>
-                            <select id="v-event-dept">
-                                <option value="">Seleccione...</option>
-                                <option value="SEGURIDAD">SEGURIDAD</option>
-                                <option value="MANTENIMIENTO">MANTENIMIENTO</option>
-                                <option value="RECURSOS HUMANOS">RECURSOS HUMANOS</option>
-                                <option value="LOGISTICA">LOGISTICA</option>
-                                <option value="PRODUCCION">PRODUCCION</option>
-                                <option value="OTRO">OTRO</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Inicio (Fecha y Hora)</label>
-                            <input type="datetime-local" id="v-event-start">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Fin (Fecha y Hora)</label>
-                            <input type="datetime-local" id="v-event-end">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Descripción / Notas</label>
-                            <textarea id="v-event-desc" style="width: 100%; height: 80px; resize: none;"
-                                placeholder="Detalles adicionales..."></textarea>
-                        </div>
-                        <button type="button" class="btn-submit-action" style="margin-top: 1rem; width: 100%;"
-                            onclick="saveCalendarEvent()">
-                            <i class="fas fa-save"></i> REGISTRAR EVENTO
-                        </button>
-                    </form>
-                </div>
-
-                <!-- List Side -->
-                <div class="card-panel"
-                    style="padding: 1.5rem; display: flex; flex-direction: column; overflow: hidden;">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid #eee; padding-bottom: 10px;">
-                        <h3 style="font-size: 1rem; margin: 0; color: var(--navy-black);">
-                            <i class="fas fa-list-ul"></i> Próximos Eventos
-                        </h3>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="date" id="event-list-filter-date" style="height: 35px; font-size: 0.8rem;">
-                            <button class="btn-salida-corpo" onclick="renderEventList()"
-                                style="width: auto; height: 35px; padding: 0 10px;">FILTRAR</button>
-                        </div>
-                    </div>
-                    <div class="monitor-list" style="flex: 1; overflow-y: auto;">
-                        <div class="list-head" style="grid-template-columns: 140px 1fr 140px 140px 80px;">
-                            <span>Fecha / Hora</span>
-                            <span>Evento</span>
-                            <span>Solicitante</span>
-                            <span>Dpto</span>
-                            <span>Acción</span>
-                        </div>
-                        <div id="event-list-body">
-                            <!-- Events injected by JS -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
     </main>
 
