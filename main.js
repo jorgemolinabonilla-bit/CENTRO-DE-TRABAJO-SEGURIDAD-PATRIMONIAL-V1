@@ -274,7 +274,7 @@ document.addEventListener('DOMContentLoaded', function () {
             'holcim_personnel_directory', 'holcim_security_officers',
             'holcim_badge_inventory', 'holcim_cctv_inventory',
             'holcim_cctv_reviews', 'holcim_virtual_rounds', 'holcim_contact_directory',
-            'holcim_calendar_events', 'holcim_access_points'
+            'holcim_notes', 'holcim_access_points'
         ];
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const folderName = `backup_${timestamp}`;
@@ -533,7 +533,7 @@ document.addEventListener('DOMContentLoaded', function () {
             renderUserList();
             showSettingsSection('profile');
         }
-        if (viewId === 'calendar') renderEventList();
+        if (viewId === 'notes') { window.renderNotesList && window.renderNotesList(); }
     };
 
     // --- NAVIGATION EVENT BINDING ---
@@ -3661,8 +3661,134 @@ document.addEventListener('DOMContentLoaded', function () {
         window.updateMapMarkers && window.updateMapMarkers();
     };
 
-    // Calendar functions are defined as globals below (outside DOMContentLoaded)
+    // Notes functions are defined as globals below (outside DOMContentLoaded)
 
     // Finalize initialization
     checkAuth();
 });
+
+// ===================== NOTAS DE TURNO — TRUE GLOBALS =====================
+
+function renderNotesList() {
+    var body = document.getElementById('notes-list-body');
+    if (!body) return;
+    var storageKey = window.getSiteKey ? window.getSiteKey('holcim_notes') : 'holcim_notes';
+    var notes = [];
+    try { notes = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch (e) { notes = []; }
+    var search = (document.getElementById('notes-search') ? document.getElementById('notes-search').value : '').toLowerCase();
+    var filterDate = document.getElementById('notes-filter-date') ? document.getElementById('notes-filter-date').value : '';
+    var filtered = notes.filter(function (n) {
+        var matchText = !search || ((n.title || '') + ' ' + (n.author || '') + ' ' + (n.body || '')).toLowerCase().indexOf(search) !== -1;
+        var matchDate = !filterDate || (n.start && n.start.startsWith(filterDate));
+        return matchText && matchDate;
+    });
+    filtered.sort(function (a, b) { return new Date(b.start || 0) - new Date(a.start || 0); });
+    if (filtered.length === 0) {
+        body.innerHTML = '<div style="padding:3rem; text-align:center; color:var(--text-muted);">Ninguna nota encontrada.</div>';
+        return;
+    }
+    body.innerHTML = filtered.map(function (n) {
+        var startStr = n.start ? new Date(n.start).toLocaleString('es-CR', { dateStyle: 'short', timeStyle: 'short' }) : '-';
+        var endStr = n.end ? new Date(n.end).toLocaleString('es-CR', { dateStyle: 'short', timeStyle: 'short' }) : '-';
+        var preview = n.body ? n.body.substring(0, 120) + (n.body.length > 120 ? '…' : '') : '';
+        return '<div class="list-row" style="grid-template-columns: 130px 1fr 130px 90px; font-size:0.82rem; align-items:start;">' +
+            '<div style="color:var(--primary-teal); font-size:0.75rem;">' + startStr + '</div>' +
+            '<div><strong style="display:block;">' + (n.title || '(Sin título)') + '</strong>' +
+            '<span style="color:var(--text-muted); font-size:0.72rem;">' + (n.author || '') + '</span>' +
+            (preview ? '<p style="font-size:0.72rem; color:var(--text-muted); margin:4px 0 0 0;">' + preview + '</p>' : '') + '</div>' +
+            '<div style="font-size:0.75rem; color:var(--text-muted);">' + endStr + '</div>' +
+            '<div style="display:flex; gap:4px; flex-wrap:wrap;">' +
+            '<button class="btn-crear" onclick="editNote(\'' + n.id + '\')" style="padding:2px 8px; font-size:0.7rem; width:auto; height:auto; margin:0;">EDITAR</button>' +
+            '<button class="btn-salida-corpo" onclick="deleteNote(\'' + n.id + '\')" style="padding:2px 8px; font-size:0.7rem; background:#ef4444; color:white; border:none; width:auto; height:auto; margin:0;">BORRAR</button>' +
+            '</div></div>';
+    }).join('');
+}
+window.renderNotesList = renderNotesList;
+
+function saveNote() {
+    var title = document.getElementById('note-title') ? document.getElementById('note-title').value.trim() : '';
+    var author = document.getElementById('note-author') ? document.getElementById('note-author').value.trim() : '';
+    var start = document.getElementById('note-start') ? document.getElementById('note-start').value : '';
+    var end = document.getElementById('note-end') ? document.getElementById('note-end').value : '';
+    var body = document.getElementById('note-body') ? document.getElementById('note-body').value.trim() : '';
+    var id = document.getElementById('note-id') ? document.getElementById('note-id').value : '';
+    var notify = window.showNotification || function (msg) { alert(msg); };
+    if (!title && !body) { notify('Ingrese al menos un título o descripción', 'warning'); return; }
+    if (start && end && new Date(end) < new Date(start)) { notify('La hora de fin no puede ser anterior al inicio', 'danger'); return; }
+    var storageKey = window.getSiteKey ? window.getSiteKey('holcim_notes') : 'holcim_notes';
+    var notes = [];
+    try { notes = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch (e) { notes = []; }
+    if (id) {
+        var idx = -1;
+        for (var i = 0; i < notes.length; i++) { if (notes[i].id === id) { idx = i; break; } }
+        if (idx !== -1) {
+            notes[idx].title = title; notes[idx].author = author; notes[idx].start = start;
+            notes[idx].end = end; notes[idx].body = body; notes[idx].updatedAt = new Date().toISOString();
+            notify('NOTA ACTUALIZADA', 'success');
+        }
+    } else {
+        notes.unshift({ id: 'nt_' + Date.now(), title: title, author: author, start: start, end: end, body: body, createdAt: new Date().toISOString() });
+        notify('NOTA GUARDADA', 'success');
+    }
+    localStorage.setItem(storageKey, JSON.stringify(notes));
+    if (window.addLogEvent) window.addLogEvent('NOTAS', (id ? 'Editada' : 'Nueva') + ' nota: ' + (title || '(sin título)'));
+    var form = document.getElementById('notes-form'); if (form) form.reset();
+    var idEl = document.getElementById('note-id'); if (idEl) idEl.value = '';
+    var ft = document.getElementById('notes-form-title');
+    if (ft) ft.innerHTML = '<i class="fas fa-plus-circle"></i> Nueva Nota';
+    renderNotesList();
+}
+window.saveNote = saveNote;
+
+function editNote(id) {
+    var storageKey = window.getSiteKey ? window.getSiteKey('holcim_notes') : 'holcim_notes';
+    var notes = []; try { notes = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch (e) { }
+    var n = null; for (var i = 0; i < notes.length; i++) { if (notes[i].id === id) { n = notes[i]; break; } }
+    if (!n) return;
+    document.getElementById('note-id').value = n.id;
+    document.getElementById('note-title').value = n.title || '';
+    document.getElementById('note-author').value = n.author || '';
+    document.getElementById('note-start').value = n.start || '';
+    document.getElementById('note-end').value = n.end || '';
+    document.getElementById('note-body').value = n.body || '';
+    var ft = document.getElementById('notes-form-title');
+    if (ft) ft.innerHTML = '<i class="fas fa-edit"></i> Editando Nota';
+    if (window.showNotification) window.showNotification('MODO EDICIÓN ACTIVADO', 'info');
+    document.getElementById('note-title').focus();
+}
+window.editNote = editNote;
+
+function deleteNote(id) {
+    if (!confirm('¿Eliminar esta nota permanentemente?')) return;
+    var storageKey = window.getSiteKey ? window.getSiteKey('holcim_notes') : 'holcim_notes';
+    var notes = []; try { notes = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch (e) { }
+    notes = notes.filter(function (n) { return n.id !== id; });
+    localStorage.setItem(storageKey, JSON.stringify(notes));
+    if (window.showNotification) window.showNotification('NOTA ELIMINADA', 'info');
+    renderNotesList();
+}
+window.deleteNote = deleteNote;
+
+function cancelNoteEdit() {
+    var form = document.getElementById('notes-form'); if (form) form.reset();
+    var idEl = document.getElementById('note-id'); if (idEl) idEl.value = '';
+    var ft = document.getElementById('notes-form-title');
+    if (ft) ft.innerHTML = '<i class="fas fa-plus-circle"></i> Nueva Nota';
+}
+window.cancelNoteEdit = cancelNoteEdit;
+
+function exportNotes() {
+    var storageKey = window.getSiteKey ? window.getSiteKey('holcim_notes') : 'holcim_notes';
+    var notes = []; try { notes = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch (e) { }
+    if (!notes.length) { if (window.showNotification) window.showNotification('NO HAY NOTAS PARA EXPORTAR', 'danger'); return; }
+    var csv = '\uFEFFTÍTULO,AUTOR,INICIO,FIN,DESCRIPCIÓN\n';
+    notes.forEach(function (n) {
+        csv += '"' + (n.title || '').replace(/"/g, '""') + '","' + (n.author || '').replace(/"/g, '""') + '","' +
+            (n.start || '') + '","' + (n.end || '') + '","' + (n.body || '').replace(/"/g, '""').replace(/\n/g, ' ') + '"\n';
+    });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    a.download = 'Notas_Turno_' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+}
+window.exportNotes = exportNotes;

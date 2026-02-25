@@ -84,7 +84,8 @@
                         data-i18n="nav_database">Base de Datos</span></a></li>
             <li><a href="#" class="nav-link" data-view="security-systems"><i class="fas fa-shield-halved"></i>
                     <span data-i18n="nav_security_systems">GESTIÓN DE SISTEMAS DE SEGURIDAD</span></a></li>
-
+            <li><a href="#" class="nav-link" data-view="notes"><i class="fas fa-sticky-note"></i>
+                    <span>NOTAS</span></a></li>
             <li><a href="#" class="nav-link" data-view="settings"><i class="fas fa-cog"></i> <span
                         data-i18n="nav_settings">Configuración</span></a></li>
             <li class="theme-switch-container"
@@ -1742,6 +1743,94 @@
                         </div>
                     </div>
                 </main>
+            </div>
+        </div>
+
+
+        <!-- ===================== NOTAS ===================== -->
+        <div id="notes-view" class="view-section" style="display: none;">
+            <div style="padding: 1rem 1.5rem; margin-bottom: 0;">
+                <h2
+                    style="font-size: 1.4rem; font-weight: 900; text-transform: uppercase; margin-bottom: 0; color: var(--navy-black);">
+                    <i class="fas fa-sticky-note" style="color: var(--primary-teal);"></i> Notas de Turno
+                </h2>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin: 4px 0 0 0;">Registro de notas y
+                    observaciones del personal por fecha y hora</p>
+            </div>
+
+            <div
+                style="display: grid; grid-template-columns: 370px 1fr; gap: 20px; padding: 1rem 1.5rem 1.5rem 1.5rem; height: calc(100vh - 175px);">
+                <!-- Form Side -->
+                <div class="card-panel" style="padding: 1.5rem; overflow-y: auto;">
+                    <h3 id="notes-form-title"
+                        style="font-size: 0.95rem; margin-bottom: 1.5rem; color: var(--navy-black); border-bottom: 2px solid var(--primary-teal); padding-bottom: 10px;">
+                        <i class="fas fa-plus-circle"></i> Nueva Nota
+                    </h3>
+                    <form id="notes-form" onsubmit="return false;">
+                        <input type="hidden" id="note-id">
+                        <div class="form-group">
+                            <label class="form-label">Título / Asunto</label>
+                            <input type="text" id="note-title" placeholder="Ej: Incidente en portería norte"
+                                style="width:100%;">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Responsable / Autor</label>
+                            <input type="text" id="note-author" placeholder="Nombre del oficial o agente"
+                                style="width:100%;">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label">Inicio</label>
+                                <input type="datetime-local" id="note-start" style="width:100%;">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Fin</label>
+                                <input type="datetime-local" id="note-end" style="width:100%;">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Descripción / Detalle</label>
+                            <textarea id="note-body" rows="5" style="width:100%; resize:vertical;"
+                                placeholder="Detalle completo de la nota u observación..."></textarea>
+                        </div>
+                        <div style="display:flex; gap:10px; margin-top:1rem;">
+                            <button type="button" class="btn-submit-action" style="flex:1;" onclick="saveNote()">
+                                <i class="fas fa-save"></i> GUARDAR NOTA
+                            </button>
+                            <button type="button" class="btn-salida-corpo"
+                                style="width:auto; padding:0 16px; height:44px;" onclick="cancelNoteEdit()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- List Side -->
+                <div class="card-panel"
+                    style="padding: 1.5rem; display: flex; flex-direction: column; overflow: hidden;">
+                    <!-- Filters -->
+                    <div style="display:flex; gap:10px; margin-bottom:1.2rem; flex-wrap:wrap; align-items:center;">
+                        <input type="text" id="notes-search" placeholder="Buscar en notas..."
+                            style="flex:1; min-width:160px; height:36px; font-size:0.8rem;" oninput="renderNotesList()">
+                        <input type="date" id="notes-filter-date" style="height:36px; font-size:0.8rem;"
+                            onchange="renderNotesList()">
+                        <button class="btn-export" onclick="exportNotes('xlsx')" style="height:36px; padding:0 12px;"><i
+                                class="fas fa-file-excel"></i> Excel</button>
+                    </div>
+
+                    <!-- List Headers -->
+                    <div class="list-head" style="grid-template-columns: 130px 1fr 130px 90px; font-size:0.75rem;">
+                        <span>Inicio</span>
+                        <span>Nota / Autor</span>
+                        <span>Fin</span>
+                        <span>Acciones</span>
+                    </div>
+
+                    <!-- List Body -->
+                    <div id="notes-list-body" style="flex:1; overflow-y:auto;">
+                        <!-- injected by JS -->
+                    </div>
+                </div>
             </div>
         </div>
 
