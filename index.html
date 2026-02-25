@@ -375,6 +375,8 @@
             </div>
         </div>
 
+        </div>
+
         <!-- ===================== REPORTS ===================== -->
         <div id="reports-view" class="view-section" style="display: none;">
             <div class="card-panel">
@@ -667,61 +669,29 @@
 
         <!-- ===================== PACKAGE MANAGEMENT ===================== -->
         <div id="packages-view" class="view-section" style="display: none;">
-            <div class="dashboard-grid">
-                <!-- Registration Form -->
-                <aside class="card-panel">
-                    <div class="panel-header">
-                        <h3><i class="fas fa-box" style="color: var(--primary-teal);"></i> Registro de Paquetería</h3>
-                    </div>
-                    <div class="panel-body">
-                        <form id="package-form">
-                            <div class="form-group">
-                                <label class="form-label">Nombre del EMISOR (Quien envía)</label>
-                                <input type="text" id="pkg-sender" placeholder="Nombre de la persona que envía"
-                                    required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Mensajero / Empresa de Mensajería</label>
-                                <input type="text" id="pkg-courier" placeholder="DHL, Correos, Emisarios..." required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Destinatario (Para quién es)</label>
-                                <input type="text" id="pkg-recipient" placeholder="Persona o departamento que recibe"
-                                    required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Número de Guía / Tracking (Si aplica)</label>
-                                <input type="text" id="pkg-tracking" placeholder="Ej: 8273645...">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Objeto / Contenido</label>
-                                <input type="text" id="pkg-object" placeholder="Ej: Herramientas, Documentos..."
-                                    required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Oficial que Recibe en Caseta</label>
-                                <select id="pkg-officer" required>
-                                    <option value="">Seleccione Oficial...</option>
-                                </select>
-                            </div>
-                            <button type="submit" class="btn-submit-action" style="margin-top: 1rem;"><i
-                                    class="fas fa-plus"></i> REGISTRAR PAQUETE</button>
-                        </form>
-                    </div>
-                </aside>
-
-                <!-- Pending Package List -->
+            <!-- Pending Package List Container -->
+            <div class="card-panel">
+                <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3><i class="fas fa-boxes" style="color: var(--primary-teal);"></i> Paquetes Pendientes de Entrega
+                    </h3>
+                    <button class="btn-submit-action" onclick="window.openRegisterPackageModal()"
+                        style="width: auto; padding: 10px 20px; margin: 0; background: var(--primary-teal);">
+                        <i class="fas fa-plus"></i> REGISTRAR PAQUETE NUEVO
+                    </button>
+                </div>
                 <div class="monitor-list">
-                    <div class="list-head" style="grid-template-columns: 140px 120px 140px 1fr 140px 140px 100px;">
+                    <div class="list-head"
+                        style="grid-template-columns: 120px 100px 120px 140px 1fr 140px 140px 100px;">
                         <span>Remitente</span>
                         <span>Guía</span>
                         <span>Mensajería</span>
+                        <span>Objeto</span>
                         <span>Para</span>
                         <span>Recibido por</span>
                         <span>Fecha Recibido</span>
-                        <span>Acción</span>
+                        <span>AcciÓn</span>
                     </div>
-                    <div id="package-list-body" style="max-height: 420px; overflow-y: auto;">
+                    <div id="package-list-body" style="max-height: 450px; overflow-y: auto;">
                         <!-- Dynamic Content -->
                     </div>
                 </div>
@@ -3025,6 +2995,49 @@
                     <input type="text" id="edit-pkg-recipient" required>
                 </div>
                 <button class="btn-submit-action" onclick="savePackageEdit()">GUARDAR CAMBIOS</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REGISTRO DE PAQUETERÍA -->
+    <div id="modal-register-package" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus-circle"></i> REGISTRAR NUEVO PAQUETE</h3>
+                <button class="close-modal"
+                    onclick="document.getElementById('modal-register-package').style.display='none'">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="package-form">
+                    <div class="form-group">
+                        <label class="form-label">Nombre del EMISOR (Quien envía)</label>
+                        <input type="text" id="pkg-sender" placeholder="Nombre de la persona que envía" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Mensajero / Empresa de Mensajería</label>
+                        <input type="text" id="pkg-courier" placeholder="DHL, Correos, Emisarios..." required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Destinatario (Para quién es)</label>
+                        <input type="text" id="pkg-recipient" placeholder="Persona o departamento que recibe" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Número de Guía / Tracking (Si aplica)</label>
+                        <input type="text" id="pkg-tracking" placeholder="Ej: 8273645...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Objeto / Contenido</label>
+                        <input type="text" id="pkg-object" placeholder="Ej: Herramientas, Documentos..." required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Oficial que Recibe en Caseta</label>
+                        <select id="pkg-officer" required>
+                            <option value="">Seleccione Oficial...</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-submit-action" style="margin-top: 1rem;"><i
+                            class="fas fa-plus"></i> REGISTRAR PAQUETE</button>
+                </form>
             </div>
         </div>
     </div>

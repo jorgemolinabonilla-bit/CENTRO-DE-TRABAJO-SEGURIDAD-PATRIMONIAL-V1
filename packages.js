@@ -48,14 +48,19 @@ document.addEventListener('DOMContentLoaded', function () {
             listBody.innerHTML = '<div style="padding:3rem;text-align:center;color:var(--text-muted)"><i class="fas fa-box-open fa-2x" style="opacity:0.3;margin-bottom:1rem;display:block;"></i>Sin paquetes pendientes.</div>';
         } else {
             listBody.innerHTML = pending.map(function (p) {
-                return '<div class="list-row" style="grid-template-columns: 140px 120px 140px 1fr 140px 140px 100px;">' +
+                return '<div class="list-row" style="grid-template-columns: 120px 100px 120px 140px 1fr 140px 140px 100px;">' +
                     '<div style="font-size:0.8rem">' + (p.sender || '-') + '</div>' +
                     '<div style="font-size:0.75rem">' + (p.tracking || '-') + '</div>' +
                     '<div><strong style="color:var(--primary-teal); cursor:pointer" onclick="openPackageEdit(' + p.id + ')">' + getCourierIcon(p.courier) + p.courier + '</strong></div>' +
+                    '<div style="font-size:0.75rem">' + (p.object || '-') + '</div>' +
                     '<div>' + p.recipient + '</div>' +
                     '<div style="font-size:0.75rem; font-weight:700">' + (p.receivedByOfficer || '-') + '</div>' +
                     '<div style="font-size:0.75rem">' + new Date(p.receivedAt).toLocaleString() + '</div>' +
-                    '<div><button class="btn-salida-corpo" style="background:var(--primary-teal);color:#fff;border-color:var(--primary-teal);" onclick="openDeliverModal(' + p.id + ')"><i class="fas fa-check"></i> ENTREGA</button></div>' +
+                    '<div style="display:flex; gap:5px;">' +
+                    '<button class="btn-salida-corpo" style="background:var(--primary-teal);color:#fff;border-color:var(--primary-teal);padding:5px 10px;" onclick="openDeliverModal(' + p.id + ')"><i class="fas fa-check"></i></button>' +
+                    '<button class="btn-salida-corpo" style="background:#64748b;color:#fff;border-color:#64748b;padding:5px 10px;" onclick="openPackageEdit(' + p.id + ')"><i class="fas fa-edit"></i></button>' +
+                    '<button class="btn-salida-corpo" style="background:var(--red-holcim);color:#fff;border-color:var(--red-holcim);padding:5px 10px;" onclick="deletePackage(' + p.id + ')"><i class="fas fa-trash"></i></button>' +
+                    '</div>' +
                     '</div>';
             }).join('');
         }
@@ -64,19 +69,36 @@ document.addEventListener('DOMContentLoaded', function () {
             historyBody.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted)">Sin entregas registradas que coincidan.</div>';
         } else {
             historyBody.innerHTML = delivered.map(function (p) {
-                return '<div class="list-row" style="grid-template-columns: 120px 100px 150px 1fr 120px 120px 120px 120px 80px;">' +
-                    '<div style="font-size:0.7rem">' + (p.sender || '-') + '</div>' +
-                    '<div style="font-size:0.65rem">' + (p.tracking || '-') + '</div>' +
+                return '<div class="list-row" style="grid-template-columns: 120px 100px 150px 1fr 120px 120px 120px 120px 120px;">' +
+                    '<div style="font-size:0.75rem">' + (p.sender || '-') + '</div>' +
+                    '<div style="font-size:0.75rem">' + (p.tracking || '-') + '</div>' +
                     '<div><strong style="cursor:pointer; color:var(--primary-teal)" onclick="openPackageEdit(' + p.id + ')">' + getCourierIcon(p.courier) + p.courier + '</strong></div>' +
                     '<div>' + p.recipient + '</div>' +
-                    '<div style="font-size:0.7rem; font-weight:700">' + (p.receivedByOfficer || '-') + '</div>' +
-                    '<div style="font-size:0.7rem">' + new Date(p.receivedAt).toLocaleString() + '</div>' +
-                    '<div style="font-size:0.7rem; color:var(--primary-teal);font-weight:700">' + (p.receivedBy || '-') + '</div>' +
-                    '<div style="font-size:0.7rem; font-weight:700">' + (p.deliveredByOfficer || '-') + '</div>' +
-                    '<div><span class="induction-status status-active" style="font-size:0.65rem;padding:3px 6px; cursor:pointer" onclick="openTraceability(' + p.id + ', \'' + p.recipient + '\')">ENTREGADO</span></div>' +
+                    '<div style="font-size:0.75rem; font-weight:700">' + (p.receivedByOfficer || '-') + '</div>' +
+                    '<div style="font-size:0.75rem">' + new Date(p.receivedAt).toLocaleString() + '</div>' +
+                    '<div style="font-size:0.75rem; color:var(--primary-teal);font-weight:700">' + (p.receivedBy || '-') + '</div>' +
+                    '<div style="font-size:0.75rem; font-weight:700">' + (p.deliveredByOfficer || '-') + '</div>' +
+                    '<div style="display:flex; gap:5px;">' +
+                    '<span class="induction-status status-active" style="font-size:0.65rem;padding:3px 6px; cursor:pointer" onclick="openTraceability(' + p.id + ', \'' + p.recipient + '\')">ENTREGADO</span>' +
+                    '<button class="btn-salida-corpo" style="background:var(--red-holcim);color:#fff;border-color:var(--red-holcim);padding:2px 6px; font-size:0.65rem;" onclick="deletePackage(' + p.id + ')"><i class="fas fa-trash"></i></button>' +
+                    '</div>' +
                     '</div>';
             }).join('');
         }
+
+    };
+
+
+
+    window.deletePackage = function (id) {
+        if (!confirm('¿Está seguro de eliminar este registro de paquetería? Esta acción no se puede deshacer.')) return;
+
+        var pkgData = JSON.parse(localStorage.getItem(window.getSiteKey('holcim_packages')) || '[]');
+        var filtered = pkgData.filter(function (p) { return p.id !== id; });
+
+        localStorage.setItem(window.getSiteKey('holcim_packages'), JSON.stringify(filtered));
+        if (typeof showNotification === 'function') showNotification('REGISTRO ELIMINADO', 'warning');
+        window.renderPackages();
     };
 
     window.exportPackages = function (format) {
@@ -213,6 +235,12 @@ document.addEventListener('DOMContentLoaded', function () {
         window.renderPackages();
     };
 
+    window.openRegisterPackageModal = function () {
+        if (packageForm) packageForm.reset();
+        window.populatePackageOfficers();
+        document.getElementById('modal-register-package').style.display = 'flex';
+    };
+
     if (packageForm) {
         packageForm.addEventListener('submit', function (e) {
             e.preventDefault();
@@ -251,6 +279,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             window.renderPackages();
             packageForm.reset();
+            document.getElementById('modal-register-package').style.display = 'none';
         });
     }
 
