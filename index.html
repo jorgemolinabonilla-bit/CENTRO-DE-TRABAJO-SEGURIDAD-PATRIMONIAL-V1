@@ -72,6 +72,8 @@
         <ul class="nav-links">
             <li><a href="#" class="nav-link active" data-view="dashboard"><i class="fas fa-id-card"></i> <span
                         data-i18n="nav_dashboard">Control de Acceso</span></a></li>
+            <li><a href="#" class="nav-link" data-view="statistics"><i class="fas fa-chart-pie"></i> <span
+                        data-i18n="nav_statistics">ESTADÍSTICAS</span></a></li>
             <li><a href="#" class="nav-link" data-view="extra-auth"><i class="fas fa-user-check"></i> <span
                         data-i18n="nav_extra_auth">Autorizaciones Extraordinarias</span></a></li>
             <li><a href="#" class="nav-link" data-view="keys"><i class="fas fa-key"></i> <span
@@ -674,18 +676,33 @@
                     <div class="panel-body">
                         <form id="package-form">
                             <div class="form-group">
-                                <label class="form-label">Mensajero / Empresa</label>
+                                <label class="form-label">Nombre del EMISOR (Quien envía)</label>
+                                <input type="text" id="pkg-sender" placeholder="Nombre de la persona que envía"
+                                    required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Mensajero / Empresa de Mensajería</label>
                                 <input type="text" id="pkg-courier" placeholder="DHL, Correos, Emisarios..." required>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Destinatario</label>
+                                <label class="form-label">Destinatario (Para quién es)</label>
                                 <input type="text" id="pkg-recipient" placeholder="Persona o departamento que recibe"
                                     required>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Oficial que Recibe</label>
-                                <input type="text" id="pkg-officer" list="officers-list"
-                                    placeholder="Nombre del oficial de seguridad" required>
+                                <label class="form-label">Número de Guía / Tracking (Si aplica)</label>
+                                <input type="text" id="pkg-tracking" placeholder="Ej: 8273645...">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Objeto / Contenido</label>
+                                <input type="text" id="pkg-object" placeholder="Ej: Herramientas, Documentos..."
+                                    required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Oficial que Recibe en Caseta</label>
+                                <select id="pkg-officer" required>
+                                    <option value="">Seleccione Oficial...</option>
+                                </select>
                             </div>
                             <button type="submit" class="btn-submit-action" style="margin-top: 1rem;"><i
                                     class="fas fa-plus"></i> REGISTRAR PAQUETE</button>
@@ -694,24 +711,20 @@
                 </aside>
 
                 <!-- Pending Package List -->
-                <section class="card-panel">
-                    <div class="panel-header">
-                        <h3><i class="fas fa-boxes" style="color: var(--primary-teal);"></i> Paquetes Pendientes de
-                            Entrega</h3>
+                <div class="monitor-list">
+                    <div class="list-head" style="grid-template-columns: 140px 120px 140px 1fr 140px 140px 100px;">
+                        <span>Remitente</span>
+                        <span>Guía</span>
+                        <span>Mensajería</span>
+                        <span>Para</span>
+                        <span>Recibido por</span>
+                        <span>Fecha Recibido</span>
+                        <span>Acción</span>
                     </div>
-                    <div class="monitor-list">
-                        <div class="list-head" style="grid-template-columns: 1fr 1fr 150px 150px 100px;">
-                            <span>MensajerÍa</span>
-                            <span>Para</span>
-                            <span>Recibido por (Seg)</span>
-                            <span>Fecha Recibido</span>
-                            <span>AcciÓn</span>
-                        </div>
-                        <div id="package-list-body" style="max-height: 420px; overflow-y: auto;">
-                            <!-- Dynamic Content -->
-                        </div>
+                    <div id="package-list-body" style="max-height: 420px; overflow-y: auto;">
+                        <!-- Dynamic Content -->
                     </div>
-                </section>
+                </div>
             </div>
 
             <!-- Delivery History -->
@@ -749,13 +762,16 @@
                     </div>
                 </div>
                 <div class="monitor-list">
-                    <div class="list-head" style="grid-template-columns: 1fr 1fr 150px 150px 150px 150px 80px;">
-                        <span>MensajerÍa</span>
+                    <div class="list-head"
+                        style="grid-template-columns: 120px 100px 150px 1fr 120px 120px 120px 120px 80px;">
+                        <span>Remitente</span>
+                        <span>Guía</span>
+                        <span>Mensajería</span>
                         <span>Para</span>
-                        <span>Recibido por (Seg)</span>
-                        <span>Fecha Recibido</span>
-                        <span>Entregado a (Per)</span>
-                        <span>Fecha Entrega</span>
+                        <span>Recibido (Seg)</span>
+                        <span>Fecha In</span>
+                        <span>Entregado a</span>
+                        <span>Entregó (Seg)</span>
                         <span>Estado</span>
                     </div>
                     <div id="package-history-body" style="max-height: 300px; overflow-y: auto;">
@@ -1861,6 +1877,152 @@
             </div>
         </div>
 
+        <!-- ===================== STATISTICS DASHBOARD ===================== -->
+        <div id="statistics-view" class="view-section" style="display: none;">
+            <div class="view-header"
+                style="margin-bottom: 2rem; padding: 2rem; background: linear-gradient(135deg, var(--navy-black), var(--navy-dark)); border-radius: 12px; color: white; border-left: 6px solid var(--primary-green); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h2
+                        style="font-size: 2rem; font-weight: 900; text-transform: uppercase; letter-spacing: -1px; margin-bottom: 5px;">
+                        Panel de Estadísticas Interactivo</h2>
+                    <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem;">Visualización de datos operativos,
+                        accesos y
+                        cumplimiento de seguridad.</p>
+                </div>
+                <div class="filter-bar"
+                    style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); grid-template-columns: repeat(3, 150px); gap: 10px;">
+                    <div class="filter-group">
+                        <label style="color:white; font-size: 0.65rem;">DESDE</label>
+                        <input type="date" id="stats-filter-start" style="height: 30px; font-size: 0.75rem;">
+                    </div>
+                    <div class="filter-group">
+                        <label style="color:white; font-size: 0.65rem;">HASTA</label>
+                        <input type="date" id="stats-filter-end" style="height: 30px; font-size: 0.75rem;">
+                    </div>
+                    <div class="filter-group">
+                        <label style="color:white; font-size: 0.65rem;">DEPTO</label>
+                        <select id="stats-filter-dept" style="height: 30px; font-size: 0.75rem;">
+                            <option value="ALL">TODOS</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Summary Cards -->
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                <div class="card-stat"
+                    style="background: white; border-radius: 12px; padding: 1.5rem; display: flex; align-items: center; gap: 1rem; border: 1px solid var(--border-gray);">
+                    <div
+                        style="background: rgba(0, 156, 189, 0.1); width: 50px; height: 50px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary-teal);">
+                        <i class="fas fa-door-open fa-lg"></i>
+                    </div>
+                    <div>
+                        <h4 style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Entradas
+                            Hoy</h4>
+                        <div id="stat-total-entries"
+                            style="font-size: 1.5rem; font-weight: 800; color: var(--navy-black);">0</div>
+                    </div>
+                </div>
+                <div class="card-stat"
+                    style="background: white; border-radius: 12px; padding: 1.5rem; display: flex; align-items: center; gap: 1rem; border: 1px solid var(--border-gray);">
+                    <div
+                        style="background: rgba(164, 204, 0, 0.1); width: 50px; height: 50px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary-green);">
+                        <i class="fas fa-user-check fa-lg"></i>
+                    </div>
+                    <div>
+                        <h4 style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Activos
+                            Planta</h4>
+                        <div id="stat-active-now"
+                            style="font-size: 1.5rem; font-weight: 800; color: var(--navy-black);">0</div>
+                    </div>
+                </div>
+                <div class="card-stat"
+                    style="background: white; border-radius: 12px; padding: 1.5rem; display: flex; align-items: center; gap: 1rem; border: 1px solid var(--border-gray);">
+                    <div
+                        style="background: rgba(237, 28, 22, 0.1); width: 50px; height: 50px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--red-holcim);">
+                        <i class="fas fa-clock fa-lg"></i>
+                    </div>
+                    <div>
+                        <h4 style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Ext. Aut.
+                        </h4>
+                        <div id="stat-extra-auth"
+                            style="font-size: 1.5rem; font-weight: 800; color: var(--navy-black);">0</div>
+                    </div>
+                </div>
+                <div class="card-stat"
+                    style="background: white; border-radius: 12px; padding: 1.5rem; display: flex; align-items: center; gap: 1rem; border: 1px solid var(--border-gray);">
+                    <div
+                        style="background: rgba(124, 58, 237, 0.1); width: 50px; height: 50px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #7c3aed;">
+                        <i class="fas fa-key fa-lg"></i>
+                    </div>
+                    <div>
+                        <h4 style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Llaves en
+                            Préstamo</h4>
+                        <div id="stat-active-keys"
+                            style="font-size: 1.5rem; font-weight: 800; color: var(--navy-black);">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Grid -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem;">
+                <div class="card-panel" style="padding: 1.5rem;">
+                    <h3
+                        style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fas fa-users" style="color: var(--primary-teal);"></i> Entradas por
+                            Categoría</span>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">(Últimos 30 días)</div>
+                    </h3>
+                    <div style="height: 300px;"><canvas id="chart-visitor-type"></canvas></div>
+                </div>
+                <div class="card-panel" style="padding: 1.5rem;">
+                    <h3
+                        style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fas fa-building" style="color: var(--primary-green);"></i> Top Departamento /
+                            Ubicación</span>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">(Volumen de Tráfico)</div>
+                    </h3>
+                    <div style="height: 300px;"><canvas id="chart-department"></canvas></div>
+                </div>
+                <div class="card-panel" style="padding: 1.5rem;">
+                    <h3
+                        style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fas fa-industry" style="color: var(--navy-black);"></i> Top Empresas
+                            Externas</span>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">(Contratistas / Proveedores)</div>
+                    </h3>
+                    <div style="height: 300px;"><canvas id="chart-company"></canvas></div>
+                </div>
+                <div class="card-panel" style="padding: 1.5rem;">
+                    <h3
+                        style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fas fa-clipboard-check" style="color: var(--red-holcim);"></i> Motivo de
+                            Ingreso</span>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">(Frecuencia)</div>
+                    </h3>
+                    <div style="height: 300px;"><canvas id="chart-reason"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Extra Auths Visualization Row -->
+            <div class="card-panel"
+                style="margin-top: 2rem; padding: 2rem; display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; align-items: center;">
+                <div style="text-align: center;">
+                    <h3 style="margin-bottom: 1rem;"><i class="fas fa-user-check"
+                            style="color: var(--primary-teal);"></i> Estado Autorizaciones</h3>
+                    <div style="height: 250px;"><canvas id="chart-extra-auth"></canvas></div>
+                </div>
+                <div>
+                    <h3 style="margin-bottom: 1.5rem;"><i class="fas fa-info-circle"
+                            style="color: var(--primary-green);"></i> Resumen Mensual</h3>
+                    <p style="margin-bottom: 1rem; color: var(--text-muted);">El siguiente gráfico muestra la tendencia
+                        de ingresos durante el mes actual comparada con el promedio histórico del sitio.</p>
+                    <div style="height: 200px;"><canvas id="chart-monthly-trend"></canvas></div>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <!-- Modal Contractor Consolidation -->
@@ -2125,6 +2287,10 @@
                 <div class="form-group" style="margin-bottom: 1rem;">
                     <label class="form-label">MensajerÍa / Courier</label>
                     <input type="text" id="edit-pkg-courier">
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label class="form-label">Objeto / Contenido</label>
+                    <input type="text" id="edit-pkg-object">
                 </div>
                 <div class="form-group" style="margin-bottom: 1.5rem;">
                     <label class="form-label">Destinatario</label>
@@ -2799,6 +2965,70 @@
             </div>
         </div>
     </div>
+    <!-- Package Delivery Modal -->
+    <div id="modal-package-delivery" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-hand-holding-box"></i> Confirmar Entrega</h3>
+                <button class="close-modal"
+                    onclick="document.getElementById('modal-package-delivery').style.display='none'">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="delivery-package-id">
+                <div id="delivery-package-info"
+                    style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.85rem;">
+                    <!-- Filled by JS -->
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nombre de quien recibe (Persona final)</label>
+                    <input type="text" id="delivery-receiver-name" placeholder="Nombre completo" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Oficial que entrega el paquete</label>
+                    <select id="delivery-officer-select" required>
+                        <option value="">Seleccione Oficial...</option>
+                    </select>
+                </div>
+                <button class="btn-submit-action" onclick="confirmPackageDelivery()">CONFIRMAR ENTREGA FINAL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Package Modal -->
+    <div id="modal-edit-package" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Editar Registro</h3>
+                <button class="close-modal"
+                    onclick="document.getElementById('modal-edit-package').style.display='none'">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-package-id">
+                <div class="form-group">
+                    <label class="form-label">Remitente</label>
+                    <input type="text" id="edit-pkg-sender" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Mensajería</label>
+                    <input type="text" id="edit-pkg-courier" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Número de Guía</label>
+                    <input type="text" id="edit-pkg-tracking">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Objeto</label>
+                    <input type="text" id="edit-pkg-object" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Destinatario</label>
+                    <input type="text" id="edit-pkg-recipient" required>
+                </div>
+                <button class="btn-submit-action" onclick="savePackageEdit()">GUARDAR CAMBIOS</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL: ESCÁNER DE CÓDIGO -->
     <div id="modal-scanner" class="modal-overlay" style="display:none;">
         <div class="modal-content" style="max-width:500px; padding:0; overflow:hidden;">
@@ -2823,10 +3053,12 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="main.js"></script>
     <script src="packages.js"></script>
+    <script src="statistics.js"></script>
 </body>
 
 </html>

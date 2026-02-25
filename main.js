@@ -41,15 +41,15 @@ document.addEventListener('DOMContentLoaded', function () {
             email: MASTER_ADMIN_EMAIL,
             pass: 'admin123',
             site: 'PLANTA CENTRAL',
-            permissions: ['dashboard', 'reports', 'inductions', 'extra-auth', 'keys', 'database', 'settings', 'calendar', 'security-systems']
+            permissions: ['dashboard', 'reports', 'inductions', 'extra-auth', 'keys', 'database', 'settings', 'calendar', 'security-systems', 'statistics']
         });
         localStorage.setItem('holcim_users', JSON.stringify(users));
     }
 
     // Auto-fix admin permissions for existing account
     const existingAdmin = users.find(u => u.email === MASTER_ADMIN_EMAIL);
-    if (existingAdmin && (!existingAdmin.permissions.includes('calendar') || !existingAdmin.permissions.includes('security-systems'))) {
-        existingAdmin.permissions = ['dashboard', 'reports', 'inductions', 'extra-auth', 'keys', 'database', 'settings', 'calendar', 'security-systems'];
+    if (existingAdmin && (!existingAdmin.permissions.includes('calendar') || !existingAdmin.permissions.includes('security-systems') || !existingAdmin.permissions.includes('statistics'))) {
+        existingAdmin.permissions = ['dashboard', 'reports', 'inductions', 'extra-auth', 'keys', 'database', 'settings', 'calendar', 'security-systems', 'statistics'];
         localStorage.setItem('holcim_users', JSON.stringify(users));
     }
 
@@ -82,6 +82,7 @@ document.addEventListener('DOMContentLoaded', function () {
             nav_dashboard: "Control de Acceso",
             nav_inductions: "Inducciones",
             nav_extra_auth: "Autorizaciones Extraordinarias",
+            nav_statistics: "ESTADÍSTICAS",
             nav_keys: "Control de Llaves",
             nav_packages: "Gestión de Paquetería",
             nav_forms: "Formularios de Reportes",
@@ -116,6 +117,7 @@ document.addEventListener('DOMContentLoaded', function () {
             nav_dashboard: "Access Control",
             nav_inductions: "Inductions",
             nav_extra_auth: "Extraordinary Auth",
+            nav_statistics: "STATISTICS",
             nav_keys: "Key Control",
             nav_packages: "Package Management",
             nav_forms: "Report Forms",
@@ -626,6 +628,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         if (viewId === 'calendar') {
             renderEventList();
+        }
+        if (viewId === 'statistics') {
+            if (typeof window.renderStatistics === 'function') window.renderStatistics();
         }
     };
 
@@ -1680,9 +1685,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateOfficersDatalist() {
         const list = document.getElementById('officers-list');
-        if (!list) return;
-        const officers = JSON.parse(localStorage.getItem(window.getSiteKey('holcim_security_officers')) || '[]');
-        list.innerHTML = officers.map(o => `<option value="${o.name}">`).join('');
+        if (list) {
+            const officers = JSON.parse(localStorage.getItem(window.getSiteKey('holcim_security_officers')) || '[]');
+            list.innerHTML = officers.map(o => `<option value="${o.name}">`).join('');
+        }
+        // Also sync the package module dropdown if it exists
+        if (typeof window.populatePackageOfficers === 'function') {
+            window.populatePackageOfficers();
+        }
     }
 
     // --- SECURITY OFFICERS DB ---

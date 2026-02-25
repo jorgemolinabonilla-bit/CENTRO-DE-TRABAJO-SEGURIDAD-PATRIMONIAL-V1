@@ -17,7 +17,11 @@ document.addEventListener('DOMContentLoaded', function () {
         var status = document.getElementById('pkg-filter-status')?.value || 'ALL';
 
         var filtered = pkgData.filter(function (p) {
-            var matchSearch = p.courier.toLowerCase().includes(search) || p.recipient.toLowerCase().includes(search);
+            var matchSearch = p.courier.toLowerCase().includes(search) ||
+                p.recipient.toLowerCase().includes(search) ||
+                (p.sender || '').toLowerCase().includes(search) ||
+                (p.tracking || '').toLowerCase().includes(search) ||
+                (p.object || '').toLowerCase().includes(search);
             var pkgDate = new Date(p.receivedAt).toISOString().split('T')[0];
             var matchStart = !start || pkgDate >= start;
             var matchEnd = !end || pkgDate <= end;
@@ -29,16 +33,29 @@ document.addEventListener('DOMContentLoaded', function () {
         var pending = filtered.filter(function (p) { return !p.deliveredAt; });
         var delivered = filtered.filter(function (p) { return !!p.deliveredAt; });
 
+        function getCourierIcon(name) {
+            name = (name || '').toUpperCase();
+            if (name.includes('DHL')) return '<i class="fas fa-truck" style="color:#d40511; margin-right:5px;"></i>';
+            if (name.includes('UPS')) return '<i class="fas fa-box" style="color:#351c15; margin-right:5px;"></i>';
+            if (name.includes('FEDEX')) return '<i class="fas fa-shipping-fast" style="color:#4d148c; margin-right:5px;"></i>';
+            if (name.includes('CORREOS')) return '<i class="fas fa-envelope" style="color:#ffcc00; margin-right:5px;"></i>';
+            if (name.includes('SERVIENTREGA')) return '<i class="fas fa-truck-moving" style="color:#00a651; margin-right:5px;"></i>';
+            if (name.includes('PEDIDOSYA') || name.includes('UBER') || name.includes('RAPPI')) return '<i class="fas fa-motorcycle" style="color:var(--primary-teal); margin-right:5px;"></i>';
+            return '<i class="fas fa-box" style="color:var(--text-muted); margin-right:5px;"></i>';
+        }
+
         if (pending.length === 0) {
             listBody.innerHTML = '<div style="padding:3rem;text-align:center;color:var(--text-muted)"><i class="fas fa-box-open fa-2x" style="opacity:0.3;margin-bottom:1rem;display:block;"></i>Sin paquetes pendientes.</div>';
         } else {
             listBody.innerHTML = pending.map(function (p) {
-                return '<div class="list-row" style="grid-template-columns: 1fr 1fr 150px 150px 100px;">' +
-                    '<div><strong style="color:var(--primary-teal); cursor:pointer" onclick="openPackageEdit(' + p.id + ')">' + p.courier + '</strong></div>' +
+                return '<div class="list-row" style="grid-template-columns: 140px 120px 140px 1fr 140px 140px 100px;">' +
+                    '<div style="font-size:0.8rem">' + (p.sender || '-') + '</div>' +
+                    '<div style="font-size:0.75rem">' + (p.tracking || '-') + '</div>' +
+                    '<div><strong style="color:var(--primary-teal); cursor:pointer" onclick="openPackageEdit(' + p.id + ')">' + getCourierIcon(p.courier) + p.courier + '</strong></div>' +
                     '<div>' + p.recipient + '</div>' +
                     '<div style="font-size:0.75rem; font-weight:700">' + (p.receivedByOfficer || '-') + '</div>' +
                     '<div style="font-size:0.75rem">' + new Date(p.receivedAt).toLocaleString() + '</div>' +
-                    '<div><button class="btn-salida-corpo" style="background:var(--primary-teal);color:#fff;border-color:var(--primary-teal);" onclick="deliverPackage(' + p.id + ')"><i class="fas fa-check"></i> ENTREGA</button></div>' +
+                    '<div><button class="btn-salida-corpo" style="background:var(--primary-teal);color:#fff;border-color:var(--primary-teal);" onclick="openDeliverModal(' + p.id + ')"><i class="fas fa-check"></i> ENTREGA</button></div>' +
                     '</div>';
             }).join('');
         }
@@ -47,13 +64,15 @@ document.addEventListener('DOMContentLoaded', function () {
             historyBody.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-muted)">Sin entregas registradas que coincidan.</div>';
         } else {
             historyBody.innerHTML = delivered.map(function (p) {
-                return '<div class="list-row" style="grid-template-columns: 1fr 1fr 150px 150px 150px 150px 80px;">' +
-                    '<div><strong style="cursor:pointer; color:var(--primary-teal)" onclick="openPackageEdit(' + p.id + ')">' + p.courier + '</strong></div>' +
+                return '<div class="list-row" style="grid-template-columns: 120px 100px 150px 1fr 120px 120px 120px 120px 80px;">' +
+                    '<div style="font-size:0.7rem">' + (p.sender || '-') + '</div>' +
+                    '<div style="font-size:0.65rem">' + (p.tracking || '-') + '</div>' +
+                    '<div><strong style="cursor:pointer; color:var(--primary-teal)" onclick="openPackageEdit(' + p.id + ')">' + getCourierIcon(p.courier) + p.courier + '</strong></div>' +
                     '<div>' + p.recipient + '</div>' +
                     '<div style="font-size:0.7rem; font-weight:700">' + (p.receivedByOfficer || '-') + '</div>' +
                     '<div style="font-size:0.7rem">' + new Date(p.receivedAt).toLocaleString() + '</div>' +
                     '<div style="font-size:0.7rem; color:var(--primary-teal);font-weight:700">' + (p.receivedBy || '-') + '</div>' +
-                    '<div style="font-size:0.7rem">' + new Date(p.deliveredAt).toLocaleString() + '</div>' +
+                    '<div style="font-size:0.7rem; font-weight:700">' + (p.deliveredByOfficer || '-') + '</div>' +
                     '<div><span class="induction-status status-active" style="font-size:0.65rem;padding:3px 6px; cursor:pointer" onclick="openTraceability(' + p.id + ', \'' + p.recipient + '\')">ENTREGADO</span></div>' +
                     '</div>';
             }).join('');
@@ -68,9 +87,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (format === 'xlsx') {
-            var csv = "\uFEFFMENSAJERIA,DESTINATARIO,OFICIAL RECEPTOR,FECHA RECIBIDO,ENTREGADO A,FECHA ENTREGA,ESTADO\n";
+            var csv = "\uFEFFEMISOR,GUIA,MENSAJERIA,OBJETO,DESTINATARIO,OFICIAL RECEPTOR,FECHA RECIBIDO,ENTREGADO A,OFICIAL ENTREGO,FECHA ENTREGA,ESTADO\n";
             pkgData.forEach(function (p) {
-                csv += '"' + p.courier + '","' + p.recipient + '","' + (p.receivedByOfficer || '-') + '","' + new Date(p.receivedAt).toLocaleString() + '","' + (p.receivedBy || '-') + '","' + (p.deliveredAt ? new Date(p.deliveredAt).toLocaleString() : '-') + '","' + (p.deliveredAt ? 'ENTREGADO' : 'PENDIENTE') + '"\n';
+                csv += '"' + (p.sender || '-') + '","' + (p.tracking || '-') + '","' + p.courier + '","' + (p.object || '-') + '","' + p.recipient + '","' + (p.receivedByOfficer || '-') + '","' + new Date(p.receivedAt).toLocaleString() + '","' + (p.receivedBy || '-') + '","' + (p.deliveredByOfficer || '-') + '","' + (p.deliveredAt ? new Date(p.deliveredAt).toLocaleString() : '-') + '","' + (p.deliveredAt ? 'ENTREGADO' : 'PENDIENTE') + '"\n';
             });
             var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             var url = URL.createObjectURL(blob);
@@ -83,6 +102,24 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
+    window.populatePackageOfficers = function () {
+        var officerSelects = [document.getElementById('pkg-officer'), document.getElementById('delivery-officer-select')];
+        var officers = window.getSiteData('holcim_security_officers');
+
+        officerSelects.forEach(function (sel) {
+            if (!sel) return;
+            var currentVal = sel.value;
+            sel.innerHTML = '<option value="">Seleccione Oficial...</option>';
+            officers.forEach(function (off) {
+                var opt = document.createElement('option');
+                opt.value = off.name.toUpperCase();
+                opt.textContent = off.name.toUpperCase();
+                sel.appendChild(opt);
+            });
+            if (currentVal) sel.value = currentVal;
+        });
+    };
+
     ['pkg-search', 'pkg-filter-start', 'pkg-filter-end', 'pkg-filter-status'].forEach(function (id) {
         document.getElementById(id)?.addEventListener('input', window.renderPackages);
     });
@@ -92,7 +129,10 @@ document.addEventListener('DOMContentLoaded', function () {
         var pkg = pkgData.find(function (p) { return p.id === id; });
         if (pkg) {
             document.getElementById('edit-package-id').value = pkg.id;
+            document.getElementById('edit-pkg-sender').value = pkg.sender || '';
             document.getElementById('edit-pkg-courier').value = pkg.courier;
+            document.getElementById('edit-pkg-tracking').value = pkg.tracking || '';
+            document.getElementById('edit-pkg-object').value = pkg.object || '';
             document.getElementById('edit-pkg-recipient').value = pkg.recipient;
             document.getElementById('modal-edit-package').style.display = 'flex';
         }
@@ -104,7 +144,10 @@ document.addEventListener('DOMContentLoaded', function () {
         var pkg = pkgData.find(function (p) { return p.id === id; });
         if (pkg) {
             var fields = {
+                sender: document.getElementById('edit-pkg-sender').value.trim().toUpperCase(),
                 courier: document.getElementById('edit-pkg-courier').value.trim().toUpperCase(),
+                tracking: document.getElementById('edit-pkg-tracking').value.trim().toUpperCase(),
+                object: document.getElementById('edit-pkg-object').value.trim().toUpperCase(),
                 recipient: document.getElementById('edit-pkg-recipient').value.trim().toUpperCase()
             };
             var changed = false;
@@ -125,55 +168,75 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-    window.deliverPackage = function (id) {
-        var pkgData = JSON.parse(localStorage.getItem(window.getSiteKey('holcim_packages')) || '[]');
-        var pkg = null;
-        for (var i = 0; i < pkgData.length; i++) {
-            if (pkgData[i].id === id) { pkg = pkgData[i]; break; }
-        }
+    window.openDeliverModal = function (id) {
+        var pkgData = window.getSiteData('holcim_packages');
+        var pkg = pkgData.find(p => p.id === id);
         if (!pkg) return;
 
-        var receiver = prompt(
-            'ENTREGA DE PAQUETE\n' +
-            '-----------------------------\n' +
-            'Empresa/Mensajería: ' + pkg.courier + '\n' +
-            'Destinatario: ' + pkg.recipient + '\n' +
-            'Recibido por Oficial: ' + (pkg.receivedByOfficer || '-') + '\n' +
-            '-----------------------------\n' +
-            'Nombre completo de la persona que recibe finalmente:'
-        );
-        if (!receiver || !receiver.trim()) return;
+        document.getElementById('delivery-package-id').value = id;
+        document.getElementById('delivery-receiver-name').value = '';
+        document.getElementById('delivery-package-info').innerHTML =
+            '<strong>EMISOR:</strong> ' + (pkg.sender || '-') + '<br>' +
+            '<strong>GUIA:</strong> ' + (pkg.tracking || '-') + '<br>' +
+            '<strong>MENSAJERIA:</strong> ' + pkg.courier + '<br>' +
+            '<strong>PARA:</strong> ' + pkg.recipient;
+
+        window.populatePackageOfficers();
+        document.getElementById('modal-package-delivery').style.display = 'flex';
+    };
+
+    window.confirmPackageDelivery = function () {
+        var id = parseInt(document.getElementById('delivery-package-id').value);
+        var receiver = document.getElementById('delivery-receiver-name').value.trim().toUpperCase();
+        var officer = document.getElementById('delivery-officer-select').value;
+
+        if (!receiver) { alert('Debe ingresar el nombre de quien recibe.'); return; }
+        if (!officer) { alert('Debe seleccionar el oficial que entrega.'); return; }
+
+        var pkgData = JSON.parse(localStorage.getItem(window.getSiteKey('holcim_packages')) || '[]');
+        var pkg = pkgData.find(p => p.id === id);
+        if (!pkg) return;
 
         pkg.deliveredAt = Date.now();
-        pkg.receivedBy = receiver.trim().toUpperCase();
+        pkg.receivedBy = receiver;
+        pkg.deliveredByOfficer = officer;
+
         localStorage.setItem(window.getSiteKey('holcim_packages'), JSON.stringify(pkgData));
 
         if (typeof addLogEvent === 'function') {
-            addLogEvent('PAQUETERIA', 'Entregado a ' + pkg.receivedBy + ' | Para: ' + pkg.recipient + ' | De: ' + pkg.courier);
+            addLogEvent('PAQUETERIA', 'Entregado por ' + officer + ' a ' + receiver + ' | Para: ' + pkg.recipient);
         }
         if (typeof showNotification === 'function') {
             showNotification('PAQUETE ENTREGADO EXITOSAMENTE', 'success');
         }
+        document.getElementById('modal-package-delivery').style.display = 'none';
         window.renderPackages();
     };
 
     if (packageForm) {
         packageForm.addEventListener('submit', function (e) {
             e.preventDefault();
+            var senderEl = document.getElementById('pkg-sender');
             var courierEl = document.getElementById('pkg-courier');
+            var trackingEl = document.getElementById('pkg-tracking');
+            var objectEl = document.getElementById('pkg-object');
             var recipientEl = document.getElementById('pkg-recipient');
             var officerEl = document.getElementById('pkg-officer');
 
-            if (!courierEl || !recipientEl || !officerEl) return;
+            if (!courierEl || !objectEl || !recipientEl || !officerEl) return;
 
             var newPkg = {
                 id: Date.now(),
+                sender: senderEl ? senderEl.value.trim().toUpperCase() : '',
                 courier: courierEl.value.trim().toUpperCase(),
+                tracking: trackingEl ? trackingEl.value.trim().toUpperCase() : '',
+                object: objectEl.value.trim().toUpperCase(),
                 recipient: recipientEl.value.trim().toUpperCase(),
                 receivedByOfficer: officerEl.value.trim().toUpperCase(),
                 receivedAt: Date.now(),
                 deliveredAt: null,
-                receivedBy: null
+                receivedBy: null,
+                deliveredByOfficer: null
             };
 
             var pkgData = JSON.parse(localStorage.getItem(window.getSiteKey('holcim_packages')) || '[]');
@@ -181,7 +244,7 @@ document.addEventListener('DOMContentLoaded', function () {
             localStorage.setItem(window.getSiteKey('holcim_packages'), JSON.stringify(pkgData));
 
             if (typeof addLogEvent === 'function') {
-                addLogEvent('PAQUETERIA', 'Nuevo paquete (Seg: ' + newPkg.receivedByOfficer + ') de ' + newPkg.courier + ' para ' + newPkg.recipient);
+                addLogEvent('PAQUETERIA', 'Nuevo paquete (Seg: ' + newPkg.receivedByOfficer + ') de ' + (newPkg.sender || newPkg.courier) + ' para ' + newPkg.recipient);
             }
             if (typeof showNotification === 'function') {
                 showNotification('PAQUETE REGISTRADO', 'success');
@@ -193,11 +256,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Initial render on load
     window.renderPackages();
+    window.populatePackageOfficers();
 
     // Re-render when navigating to the packages view
     document.addEventListener('click', function (e) {
         var link = e.target.closest('.nav-link[data-view="packages"]');
         if (link) {
+            window.populatePackageOfficers();
             setTimeout(window.renderPackages, 200);
         }
     });
